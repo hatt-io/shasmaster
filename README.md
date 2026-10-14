@@ -1,3 +1,5 @@
+<p align="right" dir="rtl">בס״ד</p>
+
 <p align="center">
   <img src="docs/assets/shas-master-hero.png" width="960" alt="Shas Master. A place for your learning. An illustrated open book in warm ivory and forest green.">
 </p>
