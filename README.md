@@ -26,9 +26,6 @@
   <a href="docs/assets/reader.png"><img src="docs/assets/reader.png" width="960" alt="Shas Master displaying Berachos with personal meanings beneath the Hebrew words."></a>
 </p>
 
-### Built around your learning
-
-Click a word and write its meaning beneath it. When that spelling appears again, choose from the meanings you have already saved.
 
 <details>
 <summary><strong>Which download fits my computer?</strong></summary>
