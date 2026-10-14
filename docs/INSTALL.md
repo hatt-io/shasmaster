@@ -25,12 +25,13 @@ This download is Developer ID signed and Apple notarized.
 
 ## Linux
 
-For ARM64 computers running a Debian-compatible desktop distribution.
+For Intel/AMD 64-bit Linux computers with glibc 2.35 or later, a desktop session and a web browser. The AppImage is independent of the distribution's package manager. ARM64 and musl-based systems such as Alpine are not supported by this download.
 
-1. Open `Shas-Master-Native-linux-arm64.deb` with your software installer and choose **Install**.
-2. Open **Shas Master** from the applications menu. The reader opens in your default browser automatically.
+1. Download `Shas-Master-x86_64.AppImage` and keep it in a folder of your choice.
+2. In the file's Properties → Permissions, allow it to run as a program. The exact wording depends on your file manager.
+3. Double-click the file. The reader opens in your default browser automatically.
 
-The accompanying `.asc` signature uses the project key in `Shas-Master-signing-public.asc`. This package is not for ordinary Intel/AMD x64 Linux computers.
+The accompanying `.asc` signature uses the project key in `Shas-Master-signing-public.asc`. The bundled AppImage runtime includes its FUSE library; it does not require installing a Debian package. A working system FUSE device is needed for normal double-click launch. On systems where FUSE is disabled, the AppImage supports `--appimage-extract-and-run`.
 
 ## Meanings, backups and updates
 

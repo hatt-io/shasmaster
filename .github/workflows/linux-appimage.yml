@@ -1,0 +1,65 @@
+name: Linux AppImage Release
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  appimage:
+    runs-on: ubuntu-22.04
+    env:
+      NODE_ENV: production
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+      - name: Prepare Release tools
+        run: |
+          mkdir -p codex-tmp-ci
+          echo "TMPDIR=$GITHUB_WORKSPACE/codex-tmp-ci" >> "$GITHUB_ENV"
+          python -m pip install uv
+          uv venv --managed-python --python 3.13 .venv
+          uv pip install --python .venv/bin/python '.[build]' httpx
+          npm install --include=dev --package-lock=false
+          curl -fL https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage -o codex-tmp-ci/appimagetool
+          chmod +x codex-tmp-ci/appimagetool
+          echo "SHAS_APPIMAGETOOL=$GITHUB_WORKSPACE/codex-tmp-ci/appimagetool" >> "$GITHUB_ENV"
+      - name: Fetch prepared offline pages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download build-content-compact-2026-10-14 --pattern prepared.tar.gz.part-00 --dir codex-tmp-ci
+          SHAS_CONTENT_ARCHIVE=codex-tmp-ci/prepared.tar.gz.part-00 SHAS_CONTENT_SHA256=4faca8e989d41e5a292a800056371e2dc0190bf45ae280e81e411f586888cadd .venv/bin/python desktop/fetch-content.py
+          rm codex-tmp-ci/prepared.tar.gz.part-00
+      - name: Build Release AppImage
+        run: |
+          npm run build
+          .venv/bin/python -m PyInstaller --noconfirm --distpath .desktop-build/runtime --workpath .desktop-build/python desktop/backend.spec
+          sh native/build-linux.sh Release
+      - name: Verify AppImage on Ubuntu
+        run: |
+          .venv/bin/python evaluate_context.py installation
+          APPIMAGE_EXTRACT_AND_RUN=1 SHAS_EVALUATE_BINARY="$GITHUB_WORKSPACE/release/Shas-Master-x86_64.AppImage" .venv/bin/python evaluate_context.py browser-runtime
+      - name: Verify packaged launcher on Fedora
+        run: |
+          mkdir -p .desktop-build/appimage-extracted
+          cd .desktop-build/appimage-extracted
+          ../../release/Shas-Master-x86_64.AppImage --appimage-extract >/dev/null
+          cd ../..
+          docker run --rm -v "$GITHUB_WORKSPACE:/work" -w /work -e TMPDIR=/work/codex-tmp-ci fedora:43 bash -ec '
+            dnf install -y python3 python3-pip >/dev/null
+            python3 -m venv codex-tmp-ci/fedora-venv
+            codex-tmp-ci/fedora-venv/bin/pip install . httpx >/dev/null
+            SHAS_EVALUATE_BINARY=/work/.desktop-build/appimage-extracted/squashfs-root/AppRun SHAS_EVALUATE_CORPUS=/work/.desktop-build/appimage-extracted/squashfs-root/usr/share/shas-master/prepared SHAS_EVALUATE_FRONTEND=/work/.desktop-build/appimage-extracted/squashfs-root/usr/share/shas-master/dist codex-tmp-ci/fedora-venv/bin/python evaluate_context.py browser-runtime
+          '
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Shas-Master-Linux-x86_64-AppImage
+          path: release/*.AppImage
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 7

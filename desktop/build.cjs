@@ -27,7 +27,7 @@ if(process.platform==='darwin'){
 if(process.platform==='linux'){
  process.env.SHAS_LINUX_BACKEND=path.join(work,'runtime','shas-backend');
  run('sh',['native/build-linux.sh','Release']);
- const files=fs.readdirSync(path.join(root,'release')).filter(file=>file.endsWith('.deb'));
+ const files=fs.readdirSync(path.join(root,'release')).filter(file=>file.endsWith('.AppImage'));
  if(!files.length)throw Error('No Linux installer was produced');
  for(const file of files)run('gpg',['--batch','--yes','--local-user',process.env.SHAS_GPG_KEY,'--armor','--detach-sign',path.join(root,'release',file)]);
 }

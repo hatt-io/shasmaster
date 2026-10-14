@@ -719,7 +719,8 @@ def work_outputs():
 
 def verify_linux_signature():
     root=Path(__file__).resolve().parent
-    package=root/'release/Shas-Master-Native-linux-arm64.deb'
+    import os
+    package=Path(os.environ.get('SHAS_LINUX_PACKAGE',str(root/'release/Shas-Master-x86_64.AppImage')))
     subprocess.run(['gpg','--verify',str(package)+'.asc',str(package)],check=True)
     print('Linux installer bytes:',package.stat().st_size,flush=True)
 
