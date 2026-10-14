@@ -9,7 +9,6 @@ on:
         options:
           - windows-latest
           - macos-latest
-          - ubuntu-latest
           - all
       sign_windows:
         description: Sign the Windows installer using configured credentials
@@ -31,15 +30,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ${{ fromJSON(inputs.platform == 'all' && '["macos-latest","windows-latest","ubuntu-latest"]' || format('["{0}"]', inputs.platform)) }}
-    runs-on: ${{ matrix.os == 'ubuntu-latest' && 'ubuntu-22.04' || matrix.os }}
+        os: ${{ fromJSON(inputs.platform == 'all' && '["macos-latest","windows-latest"]' || format('["{0}"]', inputs.platform)) }}
+    runs-on: ${{ matrix.os }}
     env:
       NODE_ENV: production
       SHAS_CONTENT_URL: ${{ inputs.content_url }}
       SHAS_CONTENT_SHA256: ${{ inputs.content_sha256 }}
       SHAS_SIGN_IDENTITY: ${{ secrets.MAC_SIGN_IDENTITY }}
       SHAS_WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
-      SHAS_GPG_KEY: ${{ secrets.LINUX_SIGN_KEY_ID }}
       ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
     defaults:
       run:
@@ -123,15 +121,6 @@ jobs:
           $certificatePath = Join-Path $env:GITHUB_WORKSPACE 'codex-tmp-ci/signing.pfx'
           [IO.File]::WriteAllBytes($certificatePath, [Convert]::FromBase64String($env:CERTIFICATE))
           "SHAS_WINDOWS_CERTIFICATE=$certificatePath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-      - name: Import Linux release signing key
-        if: runner.os == 'Linux' && env.SHAS_GPG_KEY != ''
-        env:
-          SIGNING_KEY: ${{ secrets.LINUX_SIGN_KEY_BASE64 }}
-        run: |
-          test -n "$SIGNING_KEY" && test -n "$SHAS_GPG_KEY"
-          mkdir -m 700 codex-tmp-ci/gnupg
-          echo "GNUPGHOME=$GITHUB_WORKSPACE/codex-tmp-ci/gnupg" >> "$GITHUB_ENV"
-          printf '%s' "$SIGNING_KEY" | base64 --decode | gpg --homedir "$GITHUB_WORKSPACE/codex-tmp-ci/gnupg" --batch --import
       - name: Build native Windows Release installer
         id: windows_build
         if: runner.os == 'Windows'
@@ -139,8 +128,8 @@ jobs:
         env:
           SIGN_WINDOWS: ${{ inputs.sign_windows }}
         run: ./native/build-windows.ps1 -Configuration Release -Sign:($env:SIGN_WINDOWS -eq 'true')
-      - name: Build Release reader for Mac and Linux
-        if: runner.os != 'Windows'
+      - name: Build Release reader for Mac
+        if: runner.os == 'macOS'
         run: |
           npm run build
           "$SHAS_BUILD_PYTHON" -m PyInstaller --noconfirm --distpath .desktop-build/runtime --workpath .desktop-build/python desktop/backend.spec
@@ -158,21 +147,6 @@ jobs:
             npm run native:mac:approve
           elif [ "$status" -ne 0 ]; then
             exit "$status"
-          fi
-      - name: Build Linux AppImage
-        if: runner.os == 'Linux'
-        env:
-          SHAS_LINUX_BACKEND: .desktop-build/runtime/shas-backend
-        run: |
-          curl -fL https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage -o codex-tmp-ci/appimagetool
-          chmod +x codex-tmp-ci/appimagetool
-          export SHAS_APPIMAGETOOL="$GITHUB_WORKSPACE/codex-tmp-ci/appimagetool"
-          sh native/build-linux.sh Release
-          if [ -n "$SHAS_GPG_KEY" ]; then
-            for package in release/*.AppImage; do
-              gpg --batch --local-user "$SHAS_GPG_KEY" --armor --detach-sign "$package"
-              gpg --verify "$package.asc" "$package"
-            done
           fi
       - name: Verify frozen backend behavior
         run: '"$SHAS_BUILD_PYTHON" evaluate_context.py frozen-backend'
@@ -203,7 +177,6 @@ jobs:
           path: |
             release/*.dmg
             release/*.exe
-            release/*.AppImage
             release/*.asc
       - name: Remove build credentials and temporary files
         if: always()
