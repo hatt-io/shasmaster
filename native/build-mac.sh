@@ -28,6 +28,6 @@ cat > "$app/Contents/Info.plist" <<'PLIST'
 PLIST
 codesign --force --options runtime --timestamp --sign "$SHAS_SIGN_IDENTITY" "$app"
 ln -s /Applications out/native-mac/Applications
-hdiutil create -volname 'Shas Master' -srcfolder out/native-mac -ov -format UDZO release/Shas-Master-Native-macOS-arm64.dmg
+hdiutil create -volname 'Shas Master' -srcfolder out/native-mac -fs HFS+ -ov -format ULMO release/Shas-Master-Native-macOS-arm64.dmg
 codesign --force --timestamp --sign "$SHAS_SIGN_IDENTITY" release/Shas-Master-Native-macOS-arm64.dmg
 test "$(stat -f %z release/Shas-Master-Native-macOS-arm64.dmg)" -le 290000000 || { echo 'Installer exceeds the 290 MB delivery limit' >&2; exit 1; }

@@ -39,5 +39,5 @@ Installed-Size: $size
 Description: Offline Shas reader with personal word meanings
  Opens the reader automatically from its application icon.
 CONTROL
-dpkg-deb --root-owner-group -Zgzip -z1 --build "$stage" "release/Shas-Master-Native-linux-$architecture.deb"
+dpkg-deb --root-owner-group -Zxz -z6 --build "$stage" "release/Shas-Master-Native-linux-$architecture.deb"
 test "$(stat -c %s "release/Shas-Master-Native-linux-$architecture.deb")" -le 290000000 || { echo 'Installer exceeds the 290 MB delivery limit' >&2; exit 1; }
