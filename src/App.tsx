@@ -165,12 +165,12 @@ export function App(){
  },[]);
  return <><div className="reader-shell"><header className="reader-toolbar" data-reader-header>
   <span className="brand">Shas Master</span>
-  <nav className="navigation" aria-label="Daf navigation" dir="rtl">
-   <button dir="ltr" aria-label="Previous page" onClick={()=>adjacent(-1)} disabled={!page||page.sequence===0}>Previous <span aria-hidden="true">›</span></button>
-   <label className="navigation-field"><span>Mesechta</span><select value={page?.tractate||''} onChange={e=>{const next=catalogue.pages.find(p=>p.tractate===e.target.value);if(next)navigate(next.id)}}>{catalogue.tractates.map(t=><option key={t.id} value={t.id}>{t.hebrew}</option>)}</select></label>
+  <nav className="navigation" aria-label="Daf navigation" dir="ltr">
+   <button dir="ltr" aria-label="Previous amud" onClick={()=>adjacent(-1)} disabled={!page||page.sequence===0}><span aria-hidden="true">‹</span> Previous</button>
+   <label className="navigation-field"><span>Mesechta</span><select value={page?.tractate||''} onChange={e=>{const next=catalogue.pages.find(p=>p.tractate===e.target.value);if(next)navigate(next.id)}}>{catalogue.tractates.map(t=><option key={t.id} value={t.id}>{t.label}</option>)}</select></label>
    <label className="navigation-field"><span>Daf</span><input aria-label="Daf or reference" aria-invalid={!!referenceError} title={referenceError?'Unknown reference: '+referenceError:undefined} value={dafInput} onChange={e=>{setDafInput(e.target.value);setReferenceError('')}} onBlur={submitReference} onKeyDown={e=>{if(e.key==='Enter')submitReference();if(e.key==='Escape'){setDafInput(String(page?.daf||''));setReferenceError('')}}}/></label>
-   <label className="navigation-field"><span>Side</span><select value={page?.amud||'a'} onChange={e=>chooseDaf(page?.daf||2,e.target.value as 'a'|'b')}><option value="a" disabled={!catalogue.pages.some(p=>p.tractate===page?.tractate&&p.daf===page?.daf&&p.amud==='a')}>א</option><option value="b" disabled={!catalogue.pages.some(p=>p.tractate===page?.tractate&&p.daf===page?.daf&&p.amud==='b')}>ב</option></select></label>
-   <button dir="ltr" aria-label="Next page" onClick={()=>adjacent(1)} disabled={!page||page.sequence===catalogue.pages.length-1}><span aria-hidden="true">‹</span> Next</button>
+   <label className="navigation-field"><span>Amud</span><select value={page?.amud||'a'} onChange={e=>chooseDaf(page?.daf||2,e.target.value as 'a'|'b')}><option value="a" disabled={!catalogue.pages.some(p=>p.tractate===page?.tractate&&p.daf===page?.daf&&p.amud==='a')}>a</option><option value="b" disabled={!catalogue.pages.some(p=>p.tractate===page?.tractate&&p.daf===page?.daf&&p.amud==='b')}>b</option></select></label>
+   <button dir="ltr" aria-label="Next amud" onClick={()=>adjacent(1)} disabled={!page||page.sequence===catalogue.pages.length-1}>Next <span aria-hidden="true">›</span></button>
   </nav>
   <div className="actions">
    <div className="zoom-controls" role="group" aria-label="Zoom">
