@@ -33,8 +33,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release download build-content-compact-2026-10-14 --pattern prepared.tar.gz.part-00 --dir codex-tmp-ci
-          SHAS_CONTENT_ARCHIVE=codex-tmp-ci/prepared.tar.gz.part-00 SHAS_CONTENT_SHA256=4faca8e989d41e5a292a800056371e2dc0190bf45ae280e81e411f586888cadd .venv/bin/python desktop/fetch-content.py
-          rm codex-tmp-ci/prepared.tar.gz.part-00
+          mv codex-tmp-ci/prepared.tar.gz.part-00 codex-tmp-content.tar.gz
+          SHAS_CONTENT_ARCHIVE=codex-tmp-content.tar.gz SHAS_CONTENT_SHA256=4faca8e989d41e5a292a800056371e2dc0190bf45ae280e81e411f586888cadd .venv/bin/python desktop/fetch-content.py
       - name: Build Release AppImage
         run: |
           npm run build

@@ -33,6 +33,7 @@ Shas Master uses work from these projects and their contributors:
 | [fontTools](https://fonttools.readthedocs.io/) | Font processing |
 | [PyInstaller](https://pyinstaller.org/) | Bundled local runtime |
 | [Inno Setup](https://jrsoftware.org/isinfo.php) | Windows installer |
+| [AppImage](https://appimage.org/) | Portable Linux package and bundled launch runtime |
 | [WebKit](https://webkit.org/) and Apple AppKit | Mac application window |
 | [.NET Framework](https://dotnet.microsoft.com/en-us/download/dotnet-framework) | Windows launcher |
 | [PyMuPDF](https://pymupdf.readthedocs.io/), [Beautiful Soup](https://www.crummy.com/software/BeautifulSoup/) and [HTTPX](https://www.python-httpx.org/) | Developer-side source preparation; excluded from the installed reader |
