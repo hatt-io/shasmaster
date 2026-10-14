@@ -761,10 +761,9 @@ def verify_mac_release():
     import platform
     root=Path(__file__).resolve().parent
     architecture='arm64' if platform.machine()=='arm64' else 'x64'
-    version=json.loads((root/'package.json').read_text())['version']
     import os
-    application=Path(os.environ.get('SHAS_MAC_APP',str(root/f'out/Shas Master-darwin-{architecture}/Shas Master.app')))
-    image=Path(os.environ.get('SHAS_MAC_INSTALLER',str(root/f'release/Shas-Master-{version}-macOS-{architecture}.dmg')))
+    application=Path(os.environ.get('SHAS_MAC_APP',str(root/'out/native-mac/Shas Master.app')))
+    image=Path(os.environ.get('SHAS_MAC_INSTALLER',str(root/f'release/Shas-Master-Native-macOS-{architecture}.dmg')))
     subprocess.run(['codesign','--verify','--deep','--strict','--verbose=2',str(application)],check=True)
     subprocess.run(['codesign','--verify','--strict','--verbose=2',str(image)],check=True)
     subprocess.run(['codesign','--display','--verbose=2',str(application)],check=True)
