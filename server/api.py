@@ -19,7 +19,7 @@ from .corrections import apply_correction,CorrectionConflict,inactive_correction
 from .page_geometry import load_geometry
 from .text import normalize
 from .source_assets import retain_catalogue_sources
-from .retained_pages import ensure_page,ensure_occurrence,search_words
+from .retained_pages import ensure_page,ensure_occurrence,search_words,page_search_query
 
 TOKEN=secrets.token_urlsafe(32)
 ALLOWED_ORIGINS={f'http://127.0.0.1:{PORT}',f'http://localhost:{PORT}','http://127.0.0.1:5173','http://localhost:5173'}
@@ -148,9 +148,12 @@ def search(q:str,limit:int=50,offset:int=0):
     if not q:return []
     normalized=normalize(q)
     quoted='text : "'+q.replace('"','""')+'"'
-    if normalized and not any(c.isalnum() and not 'א'<=c<='ת' for c in q):
+    use_normalized=bool(normalized) and not any(c.isalnum() and not 'א'<=c<='ת' for c in q)
+    if use_normalized:
         quoted+=' OR normalized : "'+normalized.replace('"','""')+'"'
-    return search_words(quoted,max(1,min(limit,200)),max(0,offset))
+    candidates=page_search_query(q,normalized if use_normalized else '')
+    if not candidates:return []
+    return search_words(quoted,max(1,min(limit,200)),max(0,offset),candidates)
 
 class AnnotationWrite(BaseModel):
     text:str=Field(max_length=20000)

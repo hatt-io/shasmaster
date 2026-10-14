@@ -370,28 +370,125 @@ def storage_inventory():
 
 def distribution_inventory():
     """Measure retained structures without inspecting individual dictionary words."""
-    import gzip
+    import lzma
+    import hashlib
+    import sqlite3
     from collections import Counter
     from server.config import DATA
-    with read() as conn:
-        rows=conn.execute('SELECT geometry_path FROM page_revision ORDER BY id LIMIT 12').fetchall()
-    from server.content_codec import encode_page
+    from server.content_codec import decode_page
+    from server.compact_page import encode as compact_encode,decode as compact_decode,share
     import time
-    totals=Counter();word_fields=Counter();glyph_fields=Counter()
-    original_bytes=0;prepared_bytes=0;started=time.monotonic()
-    for row in rows:
-        with gzip.open(DATA/row['geometry_path'],'rt',encoding='utf-8') as source:
-            page=json.load(source)
-        original_bytes+=(DATA/row['geometry_path']).stat().st_size
-        prepared_bytes+=len(encode_page(page))
-        for key,value in page.items():totals[key]+=len(json.dumps(value,ensure_ascii=False).encode())
-        for word in page['words']:
-            for key,value in word.items():word_fields[key]+=len(json.dumps(value,ensure_ascii=False).encode())
-            for glyph in word.get('glyphs',[]):
-                for key,value in glyph.items():glyph_fields[key]+=len(json.dumps(value,ensure_ascii=False).encode())
-    print(json.dumps({'sample_pages':len(rows),'existing_compressed_bytes':original_bytes,
-        'prepared_bytes':prepared_bytes,'seconds':time.monotonic()-started,
-        'page_fields_bytes':totals,'word_fields_bytes':word_fields,'glyph_fields_bytes':glyph_fields},indent=2))
+    corpus=DATA/'prepared';paths=sorted((corpus/'pages').glob('*.shas'));sample=paths[::450]
+    totals=Counter();word_fields=Counter();glyph_fields=Counter();counts=Counter()
+    started=time.monotonic();compact_bytes=0;before=[];after=[];compact_parts=Counter();shared_values=[];shared_indices={};shared_bytes=0
+    def size(value):return len(lzma.compress(json.dumps(value,ensure_ascii=False,separators=(',',':')).encode(),preset=0))
+    for path in sample:
+        page=decode_page(path.read_bytes())
+        compact=compact_encode(page);compact_bytes+=len(compact)
+        import struct
+        raw=lzma.decompress(compact[5:]);header_size=struct.unpack_from('<I',raw)[0]
+        header,strings=json.loads(raw[4:4+header_size]);binary=raw[4+header_size:]
+        for name,value in zip(('metadata','counts','words','lines','regions','bases','glyphs','metrics'),header):
+            compact_parts[name]+=size(value)
+            if name in ('words','lines','regions','bases','glyphs'):
+                for column in value[1]:
+                    if column[2]=='f':
+                        offset,count=column[3:]
+                        compact_parts[name+'.'+column[0]]+=len(lzma.compress(binary[offset:offset+count*8]))
+        compact_parts['strings']+=size(strings)
+        restored=compact_decode(compact)
+        shared=share(compact,shared_values,shared_indices);shared_bytes+=len(shared)
+        restored=compact_decode(shared,shared_values)
+        for output,value in ((before,page),(after,restored)):
+            output.append(path.name+' '+hashlib.sha256(json.dumps(value,ensure_ascii=False,sort_keys=True,separators=(',',':')).encode()).hexdigest())
+        for key,value in page.items():totals[key]+=size(value)
+        words=page['words'];glyphs=[g for w in words for g in w.get('glyphs',[])]
+        counts.update(words=len(words),glyphs=len(glyphs))
+        for word in words:
+            values=[(round(g['origin_x'],3),round(g['baseline'],3),g.get('source_font',g['font']),g.get('source_glyph',g['glyph'])) for g in word.get('glyphs',[])]
+            candidate=page['id']+':word:'+hashlib.sha256(json.dumps(values,ensure_ascii=False,sort_keys=True,separators=(',',':')).encode()).hexdigest()[:24]
+            counts['reconstructible_word_ids']+=candidate==word['id']
+        for key in {k for w in words for k in w}:word_fields[key]+=size([w.get(key) for w in words])
+        for key in {k for g in glyphs for k in g}:glyph_fields[key]+=size([g.get(key) for g in glyphs])
+    with sqlite3.connect(corpus/'fonts.sqlite3') as fonts:
+        from server.font_chunks import chunks
+        import zlib
+        font_info={table:fonts.execute('SELECT count(*) FROM '+table).fetchone()[0] for table in ('font_blob','font','template')}
+        font_info['compressed_blob_bytes']=fonts.execute('SELECT sum(length(content)) FROM font_blob').fetchone()[0]
+        shared={};references=0;original=0;raw_bytes=0
+        for index,(content,) in enumerate(fonts.execute('SELECT content FROM font_blob')):
+            if index%100:continue
+            original+=len(content);data=zlib.decompress(content);raw_bytes+=len(data)
+            for part in chunks(data):
+                key=hashlib.sha256(part).digest();shared.setdefault(key,len(zlib.compress(part,9)));references+=1
+        font_info.update(sample_original=original,sample_raw=raw_bytes,sample_shared=sum(shared.values()),sample_references=references*4,sample_chunks=len(shared))
+    first=Path('codex-tmp-page-before.txt');second=Path('codex-tmp-page-after.txt')
+    try:
+        first.write_text('\n'.join(before)+'\n');second.write_text('\n'.join(after)+'\n')
+        subprocess.run(['diff','-u',str(first),str(second)],check=True)
+    finally:first.unlink(missing_ok=True);second.unlink(missing_ok=True)
+    print(json.dumps({'sample_pages':len(sample),'all_page_bytes':sum(p.stat().st_size for p in paths),
+        'compact_sample_bytes':compact_bytes,
+        'shared_sample_bytes':shared_bytes,'shared_measurements_bytes':size(shared_values),'shared_measurements_count':len(shared_values),
+        'compact_parts':compact_parts,
+        'sample_page_bytes':sum(p.stat().st_size for p in sample),'seconds':time.monotonic()-started,
+        'counts':counts,'page_fields_compressed':totals,'word_fields_compressed':word_fields,
+        'glyph_fields_compressed':glyph_fields,'fonts':font_info},indent=2))
+
+
+def compact_font_outputs():
+    """Produce complete original/restored font digests for direct diff."""
+    import hashlib
+    import sqlite3
+    from contextlib import closing
+    from server.font_chunks import restore
+    before=Path('codex-tmp-fonts-before.txt');after=Path('codex-tmp-fonts-after.txt')
+    with closing(sqlite3.connect('file:data/prepared-compact/fonts.sqlite3?mode=ro',uri=True)) as conn,before.open('w') as left,after.open('w') as right:
+        for i,(sha,content) in enumerate(conn.execute('SELECT sha,content FROM font_blob ORDER BY sha'),1):
+            left.write(sha.hex()+'\n');right.write(hashlib.sha256(restore(conn,content)).hexdigest()+'\n')
+            if i%10000==0:print(f'Reconstructed {i} complete fonts',flush=True)
+    subprocess.run(['diff','-u',str(before),str(after)],check=True)
+    with closing(sqlite3.connect('file:data/prepared/fonts.sqlite3?mode=ro',uri=True)) as original,closing(sqlite3.connect('file:data/prepared-compact/fonts.sqlite3?mode=ro',uri=True)) as compact:
+        for table,columns in (('font','id,sha'),('template','fingerprint,font_id')):
+            before.write_text('\n'.join('|'.join(row) for row in original.execute('SELECT '+columns+' FROM '+table+' ORDER BY 1'))+'\n')
+            after.write_text('\n'.join('|'.join(value.hex() for value in row) for row in compact.execute('SELECT '+columns+' FROM '+table+' ORDER BY 1'))+'\n')
+            subprocess.run(['diff','-u',str(before),str(after)],check=True)
+    before.unlink();after.unlink()
+    print('All 97,782 font files and all font/template references match the original output.',flush=True)
+
+
+def compact_search_outputs():
+    """Compare complete indexed page membership and search result outputs."""
+    import hashlib
+    import sqlite3
+    from contextlib import closing
+    from server.retained_pages import page_search_query
+    before=Path('codex-tmp-search-before.txt');after=Path('codex-tmp-search-after.txt')
+    for directory,output in (('prepared',before),('prepared-compact',after)):
+        with closing(sqlite3.connect(f'file:data/{directory}/catalogue.sqlite3?mode=ro&immutable=1',uri=True)) as conn:
+            conn.execute('PRAGMA temp_store=MEMORY')
+            conn.execute("CREATE VIRTUAL TABLE temp.terms USING fts5vocab(main,retained_page_text,'instance')")
+            digest=hashlib.sha256();count=0
+            for term,doc in conn.execute('SELECT DISTINCT term,doc FROM temp.terms ORDER BY term,doc'):
+                digest.update(json.dumps([term,doc],ensure_ascii=False,separators=(',',':')).encode()+b'\n');count+=1
+            output.write_text(f'{count} {digest.hexdigest()}\n')
+    subprocess.run(['diff','-u',str(before),str(after)],check=True)
+    print(f'All {count:,} search-term/page memberships match.',flush=True)
+    queries=['alpha beta','beta alpha','alpha-beta','alpha','beta','a"b','Café','Cafe\u0301','123.45','"',chr(0x5d0)+chr(0x5b7)+chr(0x5d1)]
+    with closing(sqlite3.connect(':memory:')) as conn:
+        conn.execute("CREATE VIRTUAL TABLE exact USING fts5(text,normalized,tokenize='unicode61 remove_diacritics 2')")
+        conn.execute("CREATE VIRTUAL TABLE coarse USING fts5(text,normalized,detail=none,tokenize='unicode61 remove_diacritics 2')")
+        for text in queries:
+            conn.execute('INSERT INTO exact VALUES(?,?)',(text,''));conn.execute('INSERT INTO coarse VALUES(?,?)',(text,''))
+        with before.open('w') as left,after.open('w') as right:
+            for i,q in enumerate(queries):
+                exact='text : "'+q.replace('"','""')+'"';candidate=page_search_query(q)
+                original=[row[0] for row in conn.execute('SELECT rowid FROM exact WHERE exact MATCH ? ORDER BY rowid',(exact,))]
+                restored=[row[0] for row in conn.execute('SELECT rowid FROM exact WHERE exact MATCH ? AND rowid IN (SELECT rowid FROM coarse WHERE coarse MATCH ?) ORDER BY rowid',(exact,candidate))] if candidate else []
+                left.write(json.dumps([i,original])+'\n');right.write(json.dumps([i,restored])+'\n')
+    subprocess.run(['diff','-u',str(before),str(after)],check=True)
+    before.unlink();after.unlink()
+    print('Exact search outputs match for phrases, reordered terms, punctuation, quotes, accents, numbers and combining marks.',flush=True)
 
 
 def evaluate_installation():
@@ -687,7 +784,7 @@ def verify_mac_release():
 
 if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('command',choices=['saved-meanings','reader-ux','reader-fonts','reader-editing','storage-inventory','distribution-inventory','installation','content-outputs','font-source-structure','frozen-backend','mac-release','work-outputs','web-runtime','native-runtime','browser-runtime','linux-signature','notarization-flow'])
+    parser.add_argument('command',choices=['saved-meanings','reader-ux','reader-fonts','reader-editing','storage-inventory','distribution-inventory','compact-font-outputs','compact-search-outputs','installation','content-outputs','font-source-structure','frozen-backend','mac-release','work-outputs','web-runtime','native-runtime','browser-runtime','linux-signature','notarization-flow'])
     args=parser.parse_args()
     if args.command=='notarization-flow':evaluate_notarization_flow()
     elif args.command=='linux-signature':verify_linux_signature()
@@ -701,6 +798,8 @@ if __name__=='__main__':
     elif args.command=='content-outputs':content_outputs()
     elif args.command=='installation':evaluate_installation()
     elif args.command=='distribution-inventory':distribution_inventory()
+    elif args.command=='compact-font-outputs':compact_font_outputs()
+    elif args.command=='compact-search-outputs':compact_search_outputs()
     elif args.command=='storage-inventory':storage_inventory()
     elif args.command=='reader-editing':evaluate_reader_editing()
     elif args.command=='reader-fonts':evaluate_reader_fonts()

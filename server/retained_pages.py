@@ -118,7 +118,21 @@ def ensure_occurrence(occurrence_id):
         ensure_page(occurrence_id.split(':', 1)[0])
 
 
-def search_words(query, limit, offset):
+def page_search_query(text, normalized=''):
+    """Use SQLite's own tokenizer for a broad page filter; exact search follows."""
+    import sqlite3
+    from contextlib import closing
+    with closing(sqlite3.connect(':memory:')) as conn:
+        conn.execute("CREATE VIRTUAL TABLE tokens USING fts5(text,normalized,tokenize='unicode61 remove_diacritics 2')")
+        conn.execute('INSERT INTO tokens VALUES(?,?)',(text,normalized))
+        conn.execute("CREATE VIRTUAL TABLE terms USING fts5vocab(tokens,'col')")
+        groups={}
+        for term,column in conn.execute('SELECT term,col FROM terms ORDER BY col,term'):
+            groups.setdefault(column,[]).append('"'+term.replace('"','""')+'"')
+    return ' OR '.join('('+' AND '.join(terms)+')' for terms in groups.values())
+
+
+def search_words(query, limit, offset, candidate_query=None):
     # The small page index covers unopened pages too. Materialize only pages
     # needed for the requested result window, then use the original word search.
     with read() as conn:
@@ -126,7 +140,7 @@ def search_words(query, limit, offset):
             SELECT m.page_id FROM retained_page_text f JOIN retained_page_search_id m ON m.id=f.rowid
             WHERE retained_page_text MATCH ?
             UNION SELECT page_id FROM printed_text WHERE printed_text MATCH ?)
-            ORDER BY p.sequence''', (query, query))]
+            ORDER BY p.sequence''', (candidate_query if candidate_query is not None else query, query))]
     result = []
     for page_id in pages:
         ensure_page(page_id)

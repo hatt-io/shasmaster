@@ -30,3 +30,4 @@ codesign --force --options runtime --timestamp --sign "$SHAS_SIGN_IDENTITY" "$ap
 ln -s /Applications out/native-mac/Applications
 hdiutil create -volname 'Shas Master' -srcfolder out/native-mac -ov -format UDZO release/Shas-Master-Native-macOS-arm64.dmg
 codesign --force --timestamp --sign "$SHAS_SIGN_IDENTITY" release/Shas-Master-Native-macOS-arm64.dmg
+test "$(stat -f %z release/Shas-Master-Native-macOS-arm64.dmg)" -le 290000000 || { echo 'Installer exceeds the 290 MB delivery limit' >&2; exit 1; }

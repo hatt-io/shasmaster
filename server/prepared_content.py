@@ -1,5 +1,6 @@
 """Read-only prepared corpus access, independent of the learner's database."""
 import json
+import lzma
 from functools import lru_cache
 from .config import CORPUS
 from .content_codec import decode_page
@@ -14,7 +15,13 @@ def page_geometry(page_id):
     path = CORPUS / 'pages' / (page_id + '.shas')
     if not path.is_file():
         raise KeyError(page_id)
-    return decode_page(path.read_bytes())
+    content=path.read_bytes()
+    return decode_page(content,_measurements() if content.startswith(b'SHAS3') else None)
+
+
+@lru_cache(maxsize=1)
+def _measurements():
+    return json.loads(lzma.decompress((CORPUS/'measurements.json.xz').read_bytes()))
 
 
 def manifest():
