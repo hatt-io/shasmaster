@@ -133,6 +133,7 @@ jobs:
           echo "GNUPGHOME=$GITHUB_WORKSPACE/codex-tmp-ci/gnupg" >> "$GITHUB_ENV"
           printf '%s' "$SIGNING_KEY" | base64 --decode | gpg --homedir "$GITHUB_WORKSPACE/codex-tmp-ci/gnupg" --batch --import
       - name: Build native Windows Release installer
+        id: windows_build
         if: runner.os == 'Windows'
         shell: pwsh
         env:
@@ -189,6 +190,7 @@ jobs:
           SHAS_MAC_INSTALLER: release/Shas-Master-Native-macOS-arm64.dmg
         run: '"$SHAS_BUILD_PYTHON" evaluate_context.py mac-release'
       - uses: actions/upload-artifact@v4
+        if: success() || steps.windows_build.outcome == 'success'
         with:
           name: shas-master-${{ runner.os }}-Release
           if-no-files-found: error

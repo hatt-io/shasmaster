@@ -538,10 +538,19 @@ def evaluate_frozen_backend(web=False,native=False,browser=False):
                 try:process.wait(timeout=15)
                 except subprocess.TimeoutExpired:process.kill();process.wait(timeout=10)
                 if native:
-                    try:
-                        httpx.get(f'http://127.0.0.1:{port}/api/session',timeout=1)
-                    except httpx.ConnectError:pass
-                    else:raise RuntimeError('Reader service stayed running after the app closed')
+                    if os.name=='nt':
+                        powershell=Path(os.environ['SystemRoot'])/'System32/WindowsPowerShell/v1.0/powershell.exe'
+                        result=subprocess.run([str(powershell),'-NoProfile','-NonInteractive','-Command',
+                            "$ErrorActionPreference='Stop'; "
+                            f"$listeners=@(Get-NetTCPConnection -State Listen | Where-Object LocalPort -eq {port}); "
+                            "if ($listeners.Count -ne 0) { exit 1 }"],capture_output=True,text=True,timeout=30)
+                        if result.returncode!=0:
+                            raise RuntimeError('Reader service remained listening or Windows could not inspect it: '+result.stderr)
+                    else:
+                        try:
+                            httpx.get(f'http://127.0.0.1:{port}/api/session',timeout=1)
+                        except httpx.ConnectError:pass
+                        else:raise RuntimeError('Reader service stayed running after the app closed')
             process=None
         try:
             token=start()
