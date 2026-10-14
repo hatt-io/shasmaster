@@ -7,7 +7,7 @@ Offline Shas reader with personal word meanings. All 5,405 prepared pages and th
 | Mac | Windows | Linux |
 | :---: | :---: | :---: |
 | **[Download for Mac](https://github.com/hatt-io/shasmaster/releases/download/v0.1.0/Shas-Master-Native-macOS-arm64.dmg)** | **[Download for Windows](https://github.com/hatt-io/shasmaster/releases/download/v0.1.0/Shas-Master-Native-Windows-x64-unsigned.exe)** | **[Download for Linux](https://github.com/hatt-io/shasmaster/releases/download/v0.1.0/Shas-Master-x86_64.AppImage)** |
-| Apple Silicon · 286 MB | x64 · 264 MB | Intel/AMD x64 · 286 MB |
+| Apple Silicon · 287 MB | x64 · 264 MB | Intel/AMD x64 · 286 MB |
 | macOS 13+ | Windows 10 version 2004+ | AppImage · glibc 2.35+ |
 
 Open the Mac download and drag the app to Applications. On Windows, run the installer. On Linux, allow the AppImage to run as a program in its file properties, then double-click it. No distribution-specific package manager is needed.

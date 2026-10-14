@@ -13,7 +13,7 @@
 <br>
 
 <p align="center">
-  <a href="https://github.com/hatt-io/shasmaster/releases/download/v0.1.0/Shas-Master-Native-macOS-arm64.dmg"><img src="docs/assets/download-mac.svg" width="30%" alt="Download macOS — Apple Silicon, 286 MB"></a>
+  <a href="https://github.com/hatt-io/shasmaster/releases/download/v0.1.0/Shas-Master-Native-macOS-arm64.dmg"><img src="docs/assets/download-mac.svg" width="30%" alt="Download macOS — Apple Silicon, 287 MB"></a>
   <a href="https://github.com/hatt-io/shasmaster/releases/download/v0.1.0/Shas-Master-Native-Windows-x64-unsigned.exe"><img src="docs/assets/download-windows.svg" width="30%" alt="Download Windows — Intel/AMD x64, 264 MB"></a>
   <a href="https://github.com/hatt-io/shasmaster/releases/download/v0.1.0/Shas-Master-x86_64.AppImage"><img src="docs/assets/download-linux.svg" width="30%" alt="Download Linux AppImage — Intel/AMD x64, 286 MB"></a>
 </p>
