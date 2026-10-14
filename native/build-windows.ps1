@@ -39,7 +39,9 @@ try {
     & $installer @options native/windows-installer.iss
     if ($LASTEXITCODE -ne 0) { throw 'Windows installer build failed' }
     $suffix = if ($Sign) { '' } else { '-unsigned' }
-    if ((Get-Item "release/Shas-Master-Native-Windows-x64$suffix.exe").Length -gt 290000000) { throw 'Installer exceeds the 290 MB delivery limit' }
+    $installerBytes = (Get-Item "release/Shas-Master-Native-Windows-x64$suffix.exe").Length
+    Write-Host "Windows installer: $installerBytes bytes"
+    if ($installerBytes -gt 290000000) { throw "Installer is $installerBytes bytes, exceeding the 290 MB delivery limit" }
     if ($Sign) {
         $result = Get-AuthenticodeSignature 'release/Shas-Master-Native-Windows-x64.exe'
         if ($result.Status -ne 'Valid') { throw "Installer signature invalid: $($result.Status)" }

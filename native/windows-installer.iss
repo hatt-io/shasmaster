@@ -17,8 +17,8 @@ OutputBaseFilename=Shas-Master-Native-Windows-x64
 #else
 OutputBaseFilename=Shas-Master-Native-Windows-x64-unsigned
 #endif
-Compression=lzma2/fast
-SolidCompression=no
+Compression=lzma2/ultra64
+SolidCompression=yes
 WizardStyle=modern
 #ifdef SignRelease
 SignTool=shasmaster
