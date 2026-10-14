@@ -27,18 +27,7 @@
 </p>
 
 
-<details>
-<summary><strong>Which download fits my computer?</strong></summary>
 
-| Download | Requirements | Open it |
-| :--- | :--- | :--- |
-| **macOS** | Apple Silicon; macOS 13+ | Open the DMG and drag the app into Applications. Signed and Apple notarized. |
-| **Windows** | Intel/AMD x64-compatible; Windows 10 version 2004+ | Run the installer. Windows may display an unknown-publisher warning because this build is unsigned. |
-| **Linux AppImage** | Intel/AMD x64; glibc 2.35+; desktop browser | Allow the file to run as a program, then double-click. Normal launch needs system FUSE; its library is bundled. |
-
-Windows and Linux open the reader in your browser automatically. Mac has its own application window. Linux runtime checks passed on Ubuntu 22.04 and Fedora 43; this is not universal Linux compatibility. Intel Mac, ARM Linux and musl-based distributions are not covered by these downloads. See the [installation guide](docs/INSTALL.md) for details and the Linux extract-and-run fallback.
-
-</details>
 
 <br>
 
