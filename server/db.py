@@ -173,7 +173,7 @@ def backup(reason='scheduled', *, directory=None):
                 destination.commit()
             finally:
                 destination.close()
-            with temporary.open('rb') as output:
+            with temporary.open('r+b') as output:
                 os.fsync(output.fileno())
             os.replace(temporary, path)
         finally:

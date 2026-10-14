@@ -69,6 +69,8 @@ jobs:
         run: |
           uv pip install --python "$SHAS_BUILD_PYTHON" '.[build]' httpx
           npm install --include=dev --package-lock=false
+      - name: Verify installation behavior
+        run: '"$SHAS_BUILD_PYTHON" evaluate_context.py installation'
       - name: Fetch prepared content
         if: inputs.content_release == ''
         run: '"$SHAS_BUILD_PYTHON" desktop/fetch-content.py'
@@ -130,8 +132,6 @@ jobs:
           mkdir -m 700 codex-tmp-ci/gnupg
           echo "GNUPGHOME=$GITHUB_WORKSPACE/codex-tmp-ci/gnupg" >> "$GITHUB_ENV"
           printf '%s' "$SIGNING_KEY" | base64 --decode | gpg --homedir "$GITHUB_WORKSPACE/codex-tmp-ci/gnupg" --batch --import
-      - name: Verify installation behavior
-        run: '"$SHAS_BUILD_PYTHON" evaluate_context.py installation'
       - name: Build native Windows Release installer
         if: runner.os == 'Windows'
         shell: pwsh
