@@ -47,10 +47,11 @@
 .reader-toolbar{flex-wrap:wrap;gap:10px 18px;padding:9px 18px}
 .reader-toolbar .brand{font-size:19px}
 .reader-toolbar .navigation{align-items:flex-end;gap:6px;flex-wrap:wrap}
-.reader-toolbar .navigation-field{display:grid;gap:3px}
-.navigation-field>span{font-size:11px;color:#687360;padding-left:7px}
-.reader-toolbar .navigation-field select{border-color:#d8dbd1;background:#fff;min-height:33px}
-.reader-toolbar .navigation-field input{width:62px;min-height:33px}
+.reader-toolbar .navigation-field{display:grid;grid-template-rows:14px var(--control-height);gap:4px;direction:ltr}
+.navigation-field>span{font-size:11px;line-height:14px;color:#687360;padding-left:8px}
+.reader-toolbar .navigation-field select,.reader-toolbar .navigation-field input{height:var(--control-height);min-height:var(--control-height);margin:0;border:1px solid #d8dbd1;border-radius:var(--control-radius);font-size:14px;line-height:20px;background-color:#fff}
+.reader-toolbar .navigation-field input{width:62px;padding:7px 8px}
+.reader-toolbar .navigation-field select{appearance:none;-webkit-appearance:none;padding:7px 30px 7px 8px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='m3 4.5 3 3 3-3' fill='none' stroke='%23687360' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-position:right 9px center;background-repeat:no-repeat}
 .reader-toolbar button{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-height:33px;padding:6px 8px;font-size:13px;white-space:nowrap;border-radius:5px}
 .reader-toolbar button:hover:not(:disabled){background:#eaf0e5}
 .reader-toolbar .actions{flex-wrap:wrap;gap:4px;margin-left:auto}
@@ -136,3 +137,18 @@
 .new-meaning{margin:6px;padding:6px;resize:none;min-width:0;font:14px Arial,sans-serif;border:1px solid #d8dbd1;border-radius:3px}
 .suggestion-delete{flex-shrink:0;align-self:center;min-width:32px;min-height:32px;font-size:20px;color:#8b3535}
 .suggestion-delete:hover:not(:disabled){background:#f8e9e7}
+
+/* Shared control styling; printed text and inline meanings keep source sizing. */
+:root{--control-height:36px;--control-radius:6px;--control-focus:#536f53}
+.reader-toolbar button,.modal button:not(.bounds-handle):not(.region-fragment):not(.boundary-cut):not(.source-word),.word-tools button{min-height:var(--control-height);border-radius:var(--control-radius)}
+.reader-toolbar button{line-height:20px}
+.modal input:not([type=radio]):not([type=checkbox]):not([type=file]),.modal select:not([size]){min-height:var(--control-height);border-radius:var(--control-radius)}
+.modal textarea,.new-meaning{border-radius:var(--control-radius);line-height:1.4}
+.modal{padding:20px;border-radius:12px}
+.modal header{padding-bottom:18px}
+.modal header button{width:var(--control-height);height:var(--control-height);padding:0;font-size:22px;display:inline-flex;align-items:center;justify-content:center}
+.modal header button:hover{background:#eceee6}
+.modal button:hover:not(:disabled):not(.bounds-handle):not(.region-fragment):not(.boundary-cut){background-color:#eef2e9}
+.reader-toolbar :is(button,input,select):focus-visible,.modal :is(button,input,select,textarea,summary,a):focus-visible,.suggestions :is(button,textarea):focus-visible{outline:2px solid var(--control-focus);outline-offset:2px}
+.new-meaning{padding:8px;font-size:14px}
+.suggestion-accept,.suggestion-delete{min-height:var(--control-height)}
