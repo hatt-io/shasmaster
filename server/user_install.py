@@ -22,7 +22,7 @@ def initialize_user_data():
         temporary = USER_DATA / 'catalogue-install.part'
         try:
             shutil.copyfile(CORPUS / 'catalogue.sqlite3', temporary)
-            with temporary.open('rb') as source:
+            with temporary.open('r+b') as source:
                 os.fsync(source.fileno())
             temporary.replace(DATABASE)
             from .db import json_text
