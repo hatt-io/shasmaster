@@ -6,13 +6,15 @@ Offline Shas reader with personal word meanings. All 5,405 prepared pages and th
 
 | Mac | Windows | Linux |
 | :---: | :---: | :---: |
-| **[Download for Mac](https://github.com/hatt-io/shasmaster/releases/download/v0.1.0/Shas-Master-Native-macOS-arm64.dmg)** | **[Download for Windows](https://github.com/hatt-io/shasmaster/releases/download/v0.1.0/Shas-Master-Native-Windows-x64-unsigned.exe)** | **[Download for Linux](https://github.com/hatt-io/shasmaster/releases/download/v0.1.0/Shas-Master-Native-linux-arm64.deb)** |
-| Apple Silicon · 286 MB | x64 · 264 MB | ARM64 Debian · 274 MB |
-| macOS 13+ | Windows 10 version 2004+ | Debian-compatible desktop |
+| **[Download for Mac](https://github.com/hatt-io/shasmaster/releases/download/v0.1.0/Shas-Master-Native-macOS-arm64.dmg)** | **[Download for Windows](https://github.com/hatt-io/shasmaster/releases/download/v0.1.0/Shas-Master-Native-Windows-x64-unsigned.exe)** | **[Download for Linux](https://github.com/hatt-io/shasmaster/releases/download/v0.1.0/Shas-Master-x86_64.AppImage)** |
+| Apple Silicon · 286 MB | x64 · 264 MB | Intel/AMD x64 · 286 MB |
+| macOS 13+ | Windows 10 version 2004+ | AppImage · glibc 2.35+ |
 
-Open the Mac download and drag the app to Applications. On Windows, run the installer. On Linux, open the DEB with your software installer. Then launch Shas Master from your applications.
+Open the Mac download and drag the app to Applications. On Windows, run the installer. On Linux, allow the AppImage to run as a program in its file properties, then double-click it. No distribution-specific package manager is needed.
 
-Mac is signed and Apple notarized. Windows is unsigned and may show an unknown-publisher warning. Windows and Linux have separate project signatures; these do not confer operating-system publisher approval. This release does not include Intel Mac or Intel/AMD Linux builds.
+Mac is signed and Apple notarized. Windows is unsigned and may show an unknown-publisher warning. Windows and Linux have separate project signatures; these do not confer operating-system publisher approval. This release does not include Intel Mac or ARM Linux builds.
+
+The Linux reader passed runtime, save/restart and backup checks on Ubuntu 22.04 and Fedora 43. It requires an Intel/AMD 64-bit computer, glibc 2.35 or later, a desktop session and a browser. Normal AppImage launch uses the system's FUSE device; the FUSE library is bundled. Systems without FUSE can use AppImage's extract-and-run option. This is not a claim of support for every Linux distribution; musl-based systems such as Alpine are excluded. Graphical double-click behavior has not been separately verified.
 
 ## Your saved work
 
