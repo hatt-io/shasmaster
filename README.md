@@ -1,13 +1,9 @@
 <p align="right" dir="rtl">בס״ד</p>
 
-<p align="center">
-  <img src="docs/assets/shas-master-hero.png" width="960" alt="Shas Master. A place for your learning. An illustrated open book in warm ivory and forest green.">
-</p>
+<h1 align="center">Shas Master</h1>
 
 <p align="center">
-  <strong>Make the daf your own.</strong><br>
-  Write a meaning beneath a Hebrew word. Reuse it when the same spelling appears again.<br>
-  Study on your computer, with the complete collection available offline.
+  <strong>Study Shas. Build your vocabulary. Make every daf your own.</strong>
 </p>
 
 <br>
@@ -27,12 +23,12 @@
 <br>
 
 <p align="center">
-  <img src="docs/assets/study-features.svg" width="960" alt="Read the daf: 5,405 pages ready offline. Add your meaning: your words remembered across pages. Keep your learning: saved locally with export and backups.">
+  <a href="docs/assets/reader.png"><img src="docs/assets/reader.png" width="960" alt="Shas Master displaying Berachos with personal meanings beneath the Hebrew words."></a>
 </p>
 
 ### Built around your learning
 
-Choose a mesechta and daf, click a word, and type. The app keeps your wording attached to that word and remembers completed meanings for the same spelling elsewhere. Search, bookmarks and ordinary text selection help you move through the page. Your meanings stay on your computer, separately from the app, so replacing the application preserves your work.
+Click a word and write its meaning beneath it. When that spelling appears again, choose from the meanings you have already saved.
 
 <details>
 <summary><strong>Which download fits my computer?</strong></summary>
@@ -61,4 +57,4 @@ The original application code is **[MIT licensed](LICENSE)**. The supplied sourc
 
 <br>
 
-<p align="center"><sub>Maintained by <a href="https://github.com/hatt-io">hatt-io</a> · Decorative banner illustration generated with AI; not an application screenshot.</sub></p>
+<p align="center"><sub>Maintained by <a href="https://github.com/hatt-io">hatt-io</a></sub></p>

@@ -1,6 +1,6 @@
 # Shas Master 0.1.0
 
-Offline Shas reader with personal word meanings. All 5,405 prepared pages and their fonts are included.
+Study Shas. Build your vocabulary. Make every daf your own.
 
 ## Downloads
 
