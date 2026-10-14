@@ -1,0 +1,207 @@
+name: Native desktop Release
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: Platform to build
+        type: choice
+        default: windows-latest
+        options:
+          - windows-latest
+          - macos-latest
+          - ubuntu-latest
+          - all
+      sign_windows:
+        description: Sign the Windows installer using configured credentials
+        type: boolean
+        default: false
+      content_url:
+        description: HTTPS URL of the prepared-content tar.gz archive
+        required: false
+      content_release:
+        description: Private release containing prepared.tar.gz.part-* files
+        required: false
+      content_sha256:
+        description: SHA-256 of that archive
+        required: true
+permissions:
+  contents: read
+jobs:
+  release:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ fromJSON(inputs.platform == 'all' && '["macos-latest","windows-latest","ubuntu-latest"]' || format('["{0}"]', inputs.platform)) }}
+    runs-on: ${{ matrix.os }}
+    env:
+      NODE_ENV: production
+      SHAS_CONTENT_URL: ${{ inputs.content_url }}
+      SHAS_CONTENT_SHA256: ${{ inputs.content_sha256 }}
+      SHAS_SIGN_IDENTITY: ${{ secrets.MAC_SIGN_IDENTITY }}
+      SHAS_WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+      SHAS_GPG_KEY: ${{ secrets.LINUX_SIGN_KEY_ID }}
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+      - name: Prepare build tools and local staging
+        run: |
+          mkdir -p codex-tmp-ci
+          echo "TMPDIR=$GITHUB_WORKSPACE/codex-tmp-ci" >> "$GITHUB_ENV"
+          echo "TMP=$GITHUB_WORKSPACE/codex-tmp-ci" >> "$GITHUB_ENV"
+          echo "TEMP=$GITHUB_WORKSPACE/codex-tmp-ci" >> "$GITHUB_ENV"
+          python -m pip install uv
+          uv venv --managed-python --python 3.13 .venv
+          if [ "$RUNNER_OS" = Windows ]; then
+            echo "SHAS_BUILD_PYTHON=$GITHUB_WORKSPACE/.venv/Scripts/python.exe" >> "$GITHUB_ENV"
+          else
+            echo "SHAS_BUILD_PYTHON=$GITHUB_WORKSPACE/.venv/bin/python" >> "$GITHUB_ENV"
+          fi
+      - name: Install runtime and build dependencies
+        run: |
+          uv pip install --python "$SHAS_BUILD_PYTHON" '.[build]' httpx
+          npm install --include=dev --package-lock=false
+      - name: Fetch prepared content
+        if: inputs.content_release == ''
+        run: '"$SHAS_BUILD_PYTHON" desktop/fetch-content.py'
+      - name: Fetch prepared content from private build assets
+        if: inputs.content_release != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CONTENT_RELEASE: ${{ inputs.content_release }}
+        run: |
+          gh release download "$CONTENT_RELEASE" --repo "$GITHUB_REPOSITORY" --pattern 'prepared.tar.gz.part-*' --dir codex-tmp-ci
+          cat codex-tmp-ci/prepared.tar.gz.part-* > codex-tmp-content.tar.gz
+          rm codex-tmp-ci/prepared.tar.gz.part-*
+          SHAS_CONTENT_ARCHIVE=codex-tmp-content.tar.gz "$SHAS_BUILD_PYTHON" desktop/fetch-content.py
+      - name: Import Mac signing certificate
+        if: runner.os == 'macOS'
+        env:
+          CERTIFICATE: ${{ secrets.MAC_CERTIFICATE_BASE64 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.MAC_KEYCHAIN_PASSWORD }}
+        run: |
+          test -n "$CERTIFICATE" && test -n "$KEYCHAIN_PASSWORD" && test -n "$SHAS_SIGN_IDENTITY"
+          printf '%s' "$CERTIFICATE" | base64 --decode > codex-tmp-ci/signing.p12
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$GITHUB_WORKSPACE/codex-tmp-ci/signing.keychain-db"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$GITHUB_WORKSPACE/codex-tmp-ci/signing.keychain-db"
+          security import codex-tmp-ci/signing.p12 -k "$GITHUB_WORKSPACE/codex-tmp-ci/signing.keychain-db" -P "$CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$GITHUB_WORKSPACE/codex-tmp-ci/signing.keychain-db"
+          security list-keychains -d user -s "$GITHUB_WORKSPACE/codex-tmp-ci/signing.keychain-db"
+      - name: Configure Apple notarization
+        if: runner.os == 'macOS'
+        env:
+          NOTARY_KEY: ${{ secrets.MAC_NOTARY_API_KEY_BASE64 }}
+          NOTARY_KEY_ID: ${{ secrets.MAC_NOTARY_API_KEY_ID }}
+          NOTARY_ISSUER: ${{ secrets.MAC_NOTARY_API_ISSUER }}
+        run: |
+          test -n "$NOTARY_KEY" && test -n "$NOTARY_KEY_ID"
+          printf '%s' "$NOTARY_KEY" | base64 --decode > codex-tmp-ci/notary.p8
+          keychain="$GITHUB_WORKSPACE/codex-tmp-ci/signing.keychain-db"
+          options=(--key "$GITHUB_WORKSPACE/codex-tmp-ci/notary.p8" --key-id "$NOTARY_KEY_ID" --keychain "$keychain")
+          if [ -n "$NOTARY_ISSUER" ]; then options+=(--issuer "$NOTARY_ISSUER"); fi
+          xcrun notarytool store-credentials shas-release "${options[@]}"
+          echo "SHAS_NOTARY_PROFILE=shas-release" >> "$GITHUB_ENV"
+          echo "SHAS_NOTARY_KEYCHAIN=$keychain" >> "$GITHUB_ENV"
+      - name: Import Windows signing certificate
+        if: runner.os == 'Windows' && inputs.sign_windows
+        shell: pwsh
+        env:
+          CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
+        run: |
+          if (!$env:CERTIFICATE -or !$env:SHAS_WINDOWS_CERTIFICATE_PASSWORD) { throw 'Windows signing credentials are required' }
+          $certificatePath = Join-Path $env:GITHUB_WORKSPACE 'codex-tmp-ci/signing.pfx'
+          [IO.File]::WriteAllBytes($certificatePath, [Convert]::FromBase64String($env:CERTIFICATE))
+          "SHAS_WINDOWS_CERTIFICATE=$certificatePath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Import Linux release signing key
+        if: runner.os == 'Linux'
+        env:
+          SIGNING_KEY: ${{ secrets.LINUX_SIGN_KEY_BASE64 }}
+        run: |
+          test -n "$SIGNING_KEY" && test -n "$SHAS_GPG_KEY"
+          mkdir -m 700 codex-tmp-ci/gnupg
+          echo "GNUPGHOME=$GITHUB_WORKSPACE/codex-tmp-ci/gnupg" >> "$GITHUB_ENV"
+          printf '%s' "$SIGNING_KEY" | base64 --decode | gpg --homedir "$GITHUB_WORKSPACE/codex-tmp-ci/gnupg" --batch --import
+      - name: Verify installation behavior
+        run: '"$SHAS_BUILD_PYTHON" evaluate_context.py installation'
+      - name: Build native Windows Release installer
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          SIGN_WINDOWS: ${{ inputs.sign_windows }}
+        run: ./native/build-windows.ps1 -Configuration Release -Sign:($env:SIGN_WINDOWS -eq 'true')
+      - name: Build Release reader for Mac and Linux
+        if: runner.os != 'Windows'
+        run: |
+          npm run build
+          "$SHAS_BUILD_PYTHON" -m PyInstaller --noconfirm --distpath .desktop-build/runtime --workpath .desktop-build/python desktop/backend.spec
+      - name: Build signed native Mac installer
+        if: runner.os == 'macOS'
+        run: sh native/build-mac.sh Release
+      - name: Submit native Mac installer for Apple approval
+        if: runner.os == 'macOS'
+        run: |
+          status=0
+          npm run native:mac:approve || status=$?
+          if [ "$status" -eq 2 ]; then
+            id=$(node -p 'require("./release/Shas-Master-Native-macOS-arm64.dmg.notarization.json").id')
+            xcrun notarytool wait "$id" --keychain-profile "$SHAS_NOTARY_PROFILE" --keychain "$SHAS_NOTARY_KEYCHAIN" --timeout 20m
+            npm run native:mac:approve
+          elif [ "$status" -ne 0 ]; then
+            exit "$status"
+          fi
+      - name: Build and sign native Linux installer
+        if: runner.os == 'Linux'
+        env:
+          SHAS_LINUX_BACKEND: .desktop-build/runtime/shas-backend
+        run: |
+          sh native/build-linux.sh Release
+          for package in release/*.deb; do
+            gpg --batch --local-user "$SHAS_GPG_KEY" --armor --detach-sign "$package"
+            gpg --verify "$package.asc" "$package"
+          done
+      - name: Verify frozen backend behavior
+        run: '"$SHAS_BUILD_PYTHON" evaluate_context.py frozen-backend'
+      - name: Install and verify native Windows application
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          SIGN_WINDOWS: ${{ inputs.sign_windows }}
+        run: |
+          $suffix = if ($env:SIGN_WINDOWS -eq 'true') { '' } else { '-unsigned' }
+          $installer = Start-Process -FilePath "$env:GITHUB_WORKSPACE/release/Shas-Master-Native-Windows-x64$suffix.exe" -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/SP-' -Wait -PassThru
+          if ($installer.ExitCode -ne 0) { throw 'Windows installation failed' }
+          $env:SHAS_WINDOWS_APP = "$env:LOCALAPPDATA/Programs/Shas Master/ShasMaster.exe"
+          & $env:SHAS_BUILD_PYTHON evaluate_context.py native-runtime
+          if ($LASTEXITCODE -ne 0) { throw 'Installed Windows application verification failed' }
+      - name: Verify Mac installer and Apple approval
+        if: runner.os == 'macOS'
+        env:
+          SHAS_MAC_APP: out/native-mac/Shas Master.app
+          SHAS_MAC_INSTALLER: release/Shas-Master-Native-macOS-arm64.dmg
+        run: '"$SHAS_BUILD_PYTHON" evaluate_context.py mac-release'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shas-master-${{ runner.os }}-Release
+          if-no-files-found: error
+          retention-days: 7
+          path: |
+            release/*.dmg
+            release/*.exe
+            release/*.deb
+            release/*.asc
+      - name: Remove build credentials and temporary files
+        if: always()
+        run: |
+          if [ "$RUNNER_OS" = macOS ] && [ -f codex-tmp-ci/signing.keychain-db ]; then
+            security delete-keychain "$GITHUB_WORKSPACE/codex-tmp-ci/signing.keychain-db"
+          fi
+          rm -rf codex-tmp-ci

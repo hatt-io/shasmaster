@@ -1,0 +1,26 @@
+{
+  "name": "shas-master",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "productName": "Shas Master",
+  "description": "Shas reader with personal word meanings",
+  "author": "Shas Master",
+  "scripts": {
+    "start": "node web/start.cjs",
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc --noEmit && vite build --mode production",
+    "desktop:release": "node desktop/build.cjs --configuration Release",
+    "native:mac:approve": "node native/notarize-mac.cjs Release"
+  },
+  "dependencies": {
+    "react": "*",
+    "react-dom": "*"
+  },
+  "devDependencies": {
+    "vite": "*",
+    "typescript": "*",
+    "@types/react": "*",
+    "@types/react-dom": "*"
+  }
+}

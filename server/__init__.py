@@ -1,0 +1,1 @@
+"""Shas Master local application."""

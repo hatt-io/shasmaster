@@ -1,0 +1,14 @@
+{
+  "id": "/",
+  "name": "Shas Master",
+  "short_name": "Shas Master",
+  "description": "Read Shas and keep your own word meanings.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fafaf7",
+  "theme_color": "#33432f",
+  "icons": [
+    {"src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable"}
+  ]
+}

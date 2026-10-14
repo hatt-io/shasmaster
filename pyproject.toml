@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "shas-master"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi",
+  "uvicorn",
+  "fonttools",
+]
+
+[project.optional-dependencies]
+prepare = [
+  "httpx",
+  "pymupdf",
+  "beautifulsoup4",
+]
+build = ["pyinstaller"]
+
+[project.scripts]
+shasmaster = "server.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["server*"]
+
+[tool.setuptools.package-data]
+server = ["migrations/*.sql"]

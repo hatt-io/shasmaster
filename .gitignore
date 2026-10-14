@@ -1,0 +1,38 @@
+.venv/
+.cache/
+node_modules/
+dist/
+data/
+__pycache__/
+*.pyc
+codex-tmp-*
+.DS_Store
+shasmaster/.obsidian/workspace*.json
+
+# Local results, source documents, and desktop build output
+output/
+out/
+release/
+.desktop-build/
+build/
+*.egg-info/
+*.pdf
+*.sqlite3
+*.sqlite3-*
+*.db
+*.db-*
+*.log
+
+# Local credentials and signing material
+.env
+.env.*
+!.env.example
+*.p12
+*.pfx
+*.p8
+*.key
+*.pem
+*.mobileprovision
+
+# Personal vault settings are not application source
+shasmaster/.obsidian/

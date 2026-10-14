@@ -1,0 +1,12 @@
+DROP TRIGGER IF EXISTS occurrence_insert;
+DROP TRIGGER IF EXISTS occurrence_update;
+DROP TRIGGER IF EXISTS occurrence_delete;
+DROP TABLE printed_text;
+CREATE VIRTUAL TABLE printed_text USING fts5(occurrence_id UNINDEXED,page_id UNINDEXED,text,normalized,tokenize='unicode61 remove_diacritics 2');
+INSERT INTO printed_text(rowid,occurrence_id,page_id,text,normalized) SELECT rowid,id,page_id,text,normalized FROM occurrence WHERE active=1;
+CREATE TRIGGER occurrence_insert AFTER INSERT ON occurrence WHEN new.active=1 BEGIN INSERT INTO printed_text(rowid,occurrence_id,page_id,text,normalized) VALUES(new.rowid,new.id,new.page_id,new.text,new.normalized); END;
+CREATE TRIGGER occurrence_delete AFTER DELETE ON occurrence BEGIN DELETE FROM printed_text WHERE rowid=old.rowid; END;
+CREATE TRIGGER occurrence_update AFTER UPDATE ON occurrence BEGIN DELETE FROM printed_text WHERE rowid=old.rowid; INSERT INTO printed_text(rowid,occurrence_id,page_id,text,normalized) SELECT new.rowid,new.id,new.page_id,new.text,new.normalized WHERE new.active=1; END;
+CREATE INDEX IF NOT EXISTS occurrence_region ON occurrence(region_id);
+CREATE INDEX IF NOT EXISTS source_issue_page ON source_issue(page_id);
+CREATE INDEX IF NOT EXISTS revision_page ON page_revision(page_id,source_sha,created_at);
