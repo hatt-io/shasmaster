@@ -34,7 +34,7 @@ Terminal=false
 Categories=Education;
 DESKTOP
 output="$root/release/Shas-Master-$architecture.AppImage"
-ARCH="$architecture" APPIMAGE_EXTRACT_AND_RUN=1 "${SHAS_APPIMAGETOOL:?Set SHAS_APPIMAGETOOL to the official appimagetool executable}" --comp zstd --no-appstream "$stage" "$output"
+ARCH="$architecture" APPIMAGE_EXTRACT_AND_RUN=1 "${SHAS_APPIMAGETOOL:?Set SHAS_APPIMAGETOOL to the official appimagetool executable}" --comp zstd --mksquashfs-opt=-Xcompression-level --mksquashfs-opt=22 --mksquashfs-opt=-b --mksquashfs-opt=1M --no-appstream "$stage" "$output"
 chmod 755 "$output"
 size=$(stat -c %s "$output")
 echo "AppImage: $size bytes"
