@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daf PDF Viewer API Documentation</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+
+        h2 {
+            color: #34495e;
+            margin-top: 30px;
+            border-bottom: 1px solid #ecf0f1;
+            padding-bottom: 5px;
+        }
+
+        h3 {
+            color: #7f8c8d;
+        }
+
+        code {
+            background-color: #ecf0f1;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        pre {
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            border-left: 4px solid #3498db;
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+            color: #ecf0f1;
+        }
+
+        .endpoint {
+            background-color: #e8f5e9;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+            border-left: 4px solid #4caf50;
+        }
+
+        .method {
+            display: inline-block;
+            background-color: #2196f3;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 3px;
+            font-weight: bold;
+            font-size: 0.85em;
+        }
+
+        .param-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+
+        .param-table th,
+        .param-table td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+
+        .param-table th {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .param-table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        .required {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+
+        .optional {
+            color: #95a5a6;
+            font-style: italic;
+        }
+
+        .example {
+            background-color: #fff9e6;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+            border-left: 4px solid #f39c12;
+        }
+
+        .masechta-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .masechta-item {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 0.9em;
+            border: 1px solid #dee2e6;
+        }
+
+        .masechta-item strong {
+            color: #2c3e50;
+        }
+
+        .response-type {
+            display: inline-block;
+            background-color: #9b59b6;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 0.8em;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <a href="https://shas.org"><img src="https://i0.wp.com/www.shas.org/wp-content/uploads/2020/01/shas-logo2.png?fit=275%2C64&ssl=1" alt="Shas.org"></a>
+
+        <h1>Daf PDF Viewer API Documentation</h1>
+
+        <p>This API provides access to Gemara Tzuras Hadaf PDF files. Request a specific masechta (tractate) and daf (page) to receive the corresponding PDF.</p>
+
+
+        <h2>PDF Attribution and Redistribution</h2>
+
+        <p>
+            These PDF files are sourced from HebrewBooks.org, where they are made available for free, non-commercial redistribution with attribution under the terms of the
+            <a href="https://web.archive.org/web/20101028043253/http://hebrewbooks.org/media/terms.html">HebrewBooks.org Limited License</a>.
+        </p>
+
+        <p>
+            If you redistribute these files, you must do so free of charge, retain all original attribution notices (including credit to HebrewBooks.org and Moznaim / הוצאת ח. וגשל),
+            retain our attribution (Shas.org), and include the full text of the
+            <a href="https://web.archive.org/web/20101028043253/http://hebrewbooks.org/media/terms.html">HebrewBooks.org Paragraph 1 License Terms</a>.
+        </p>
+
+        <p><strong>Attribution Example:</strong></p>
+        <pre><code>Scanned Shas provided courtesy of shas.org (http://shas.org/dafviewer), hebrewbooks.org (https://www.hebrewbooks.org/shas) and Moznaim (הוצאת ח. וגשל);
+Redistributed free for non-commercial, educational use under the HebrewBooks License (https://web.archive.org/web/20101028043253/http://hebrewbooks.org/media/terms.html).</code></pre>
+
+        <h2>Base URL</h2>
+        <pre><code>https://www.shas.org/daf-pdf/api/</code></pre>
+
+        <h2>Endpoints</h2>
+
+        <div class="endpoint">
+            <h3><span class="method">GET</span> /</h3>
+            <p>Retrieve a specific daf from a masechta as a PDF file.</p>
+        </div>
+
+        <h2>Request Parameters</h2>
+        <table class="param-table">
+            <thead>
+                <tr>
+                    <th>Parameter</th>
+                    <th>Type</th>
+                    <th>Required</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>masechta</code></td>
+                    <td>string</td>
+                    <td><span class="required">Required</span></td>
+                    <td>Name of the masechta (see list below)</td>
+                </tr>
+                <tr>
+                    <td><code>daf</code></td>
+                    <td>integer</td>
+                    <td><span class="required">Required</span></td>
+                    <td>Daf number (starts from 2)</td>
+                </tr>
+                <tr>
+                    <td><code>amud</code></td>
+                    <td>string</td>
+                    <td><span class="optional">Optional</span></td>
+                    <td>Side of the daf: <code>a</code> (default), <code>b</code>, <code>aleph</code>, <code>bet</code>,
+                        <code>1</code>, or <code>2</code>
+                    </td>
+                </tr>
+                <tr>
+                    <td><code>format</code></td>
+                    <td>string</td>
+                    <td><span class="optional">Optional</span></td>
+                    <td>Set to <code>json</code> to get metadata instead of the PDF file</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2>Available Masechtot</h2>
+        <p>Use these exact masechta names in your API requests (case-insensitive):</p>
+        <p><strong>Note:</strong> Some masechtot end on amud 'a' rather than 'b'. Attempting to access a non-existent
+            amud 'b' will return an error.</p>
+
+        <div class="masechta-list">
+            <div class="masechta-item"><strong>berachos</strong> (2a - 64a)</div>
+            <div class="masechta-item"><strong>shabbos</strong> (2a - 157b)</div>
+            <div class="masechta-item"><strong>eruvin</strong> (2a - 105a)</div>
+            <div class="masechta-item"><strong>pesachim</strong> (2a - 121b)</div>
+            <div class="masechta-item"><strong>shekalim</strong> (2a - 22b)</div>
+            <div class="masechta-item"><strong>yoma</strong> (2a - 88a)</div>
+            <div class="masechta-item"><strong>sukkah</strong> (2a - 56b)</div>
+            <div class="masechta-item"><strong>beitzah</strong> (2a - 40b)</div>
+            <div class="masechta-item"><strong>rosh-hashanah</strong> (2a - 35a)</div>
+            <div class="masechta-item"><strong>taanis</strong> (2a - 31a)</div>
+            <div class="masechta-item"><strong>megillah</strong> (2a - 32a)</div>
+            <div class="masechta-item"><strong>moed-katan</strong> (2a - 29a)</div>
+            <div class="masechta-item"><strong>chagigah</strong> (2a - 27a)</div>
+            <div class="masechta-item"><strong>yevamos</strong> (2a - 122a)</div>
+            <div class="masechta-item"><strong>kesubos</strong> (2a - 112b)</div>
+            <div class="masechta-item"><strong>nedarim</strong> (2a - 91b)</div>
+            <div class="masechta-item"><strong>nazir</strong> (2a - 66b)</div>
+            <div class="masechta-item"><strong>sotah</strong> (2a - 49b)</div>
+            <div class="masechta-item"><strong>gittin</strong> (2a - 90b)</div>
+            <div class="masechta-item"><strong>kiddushin</strong> (2a - 82b)</div>
+            <div class="masechta-item"><strong>bava-kamma</strong> (2a - 119b)</div>
+            <div class="masechta-item"><strong>bava-metzia</strong> (2a - 119a)</div>
+            <div class="masechta-item"><strong>bava-basra</strong> (2a - 176b)</div>
+            <div class="masechta-item"><strong>sanhedrin</strong> (2a - 113b)</div>
+            <div class="masechta-item"><strong>makkos</strong> (2a - 24b)</div>
+            <div class="masechta-item"><strong>shevuos</strong> (2a - 49b)</div>
+            <div class="masechta-item"><strong>avodah-zarah</strong> (2a - 76b)</div>
+            <div class="masechta-item"><strong>horayos</strong> (2a - 14a)</div>
+            <div class="masechta-item"><strong>zevachim</strong> (2a - 120b)</div>
+            <div class="masechta-item"><strong>menachos</strong> (2a - 110a)</div>
+            <div class="masechta-item"><strong>chullin</strong> (2a - 142a)</div>
+            <div class="masechta-item"><strong>bechoros</strong> (2a - 61a)</div>
+            <div class="masechta-item"><strong>arachin</strong> (2a - 34a)</div>
+            <div class="masechta-item"><strong>temurah</strong> (2a - 34a)</div>
+            <div class="masechta-item"><strong>kereisos</strong> (2a - 28b)</div>
+            <div class="masechta-item"><strong>meilah</strong> (2a - 37b) - <em>Includes Kinim, Tamid, and Middos</em>
+            </div>
+            <div class="masechta-item"><strong>niddah</strong> (2a - 73a)</div>
+        </div>
+
+        <div>
+            <small style="color: #6c757d;">Use <code>meilah</code>, <code>kinim</code>, <code>tamid</code>, or
+                <code>middos</code> as aliases to access:<br>
+                • Me'ilah proper: 2a-22a<br>
+                • Kinim: 22b-25a<br>
+                • Tamid: 25b-33b<br>
+                • Middos: 34a-37b</small>
+        </div>
+
+        <h2>Examples</h2>
+
+        <div class="example">
+            <h3>Example 1: Get Berachos 2a as PDF</h3>
+            <pre><code>GET /?masechta=berachos&daf=2</code></pre>
+            <p><strong>Response:</strong> <span class="response-type">application/pdf</span></p>
+            <p>Returns the PDF file for Berachos daf 2, amud aleph.</p>
+        </div>
+
+        <div class="example">
+            <h3>Example 2: Get Shabbos 5b as PDF</h3>
+            <pre><code>GET /?masechta=shabbos&daf=5&amud=b</code></pre>
+            <p><strong>Response:</strong> <span class="response-type">application/pdf</span></p>
+            <p>Returns the PDF file for Shabbos daf 5, amud bet.</p>
+        </div>
+
+        <div class="example">
+            <h3>Example 3: Get metadata as JSON</h3>
+            <pre><code>GET /?masechta=bava-metzia&daf=10&amud=a&format=json</code></pre>
+            <p><strong>Response:</strong> <span class="response-type">application/json</span></p>
+            <pre><code>{
+  "success": true,
+  "masechta": "Bava Metzia",
+  "daf": 10,
+  "amud": "a",
+  "page_number": 3043,
+  "pdf_url": "3043.pdf",
+  "file_size": 1234567
+}</code></pre>
+        </div>
+
+        <h2>Error Responses</h2>
+
+        <div class="example">
+            <h3>Missing Parameters</h3>
+            <p><strong>Status Code:</strong> 400 Bad Request</p>
+            <pre><code>{
+  "error": "Missing masechta parameter",
+  "message": "Please provide a masechta name (e.g., ?masechta=berachos&daf=2)"
+}</code></pre>
+        </div>
+
+        <div class="example">
+            <h3>Invalid Masechta</h3>
+            <p><strong>Status Code:</strong> 404 Not Found</p>
+            <pre><code>{
+  "error": "Invalid masechta",
+  "message": "Masechta 'invalid' not found",
+  "available_masechtot": ["berachos", "shabbos", ...]
+}</code></pre>
+        </div>
+
+        <div class="example">
+            <h3>Daf Out of Range</h3>
+            <p><strong>Status Code:</strong> 400 Bad Request</p>
+            <pre><code>{
+  "error": "Daf out of range",
+  "message": "Masechta Berachos only has 64 dapim",
+  "max_daf": 64
+}</code></pre>
+        </div>
+
+        <div class="example">
+            <h3>Amud Does Not Exist</h3>
+            <p><strong>Status Code:</strong> 400 Bad Request</p>
+            <pre><code>{
+  "error": "Amud does not exist",
+  "message": "Masechta Berachos ends at daf 64a (amud aleph only)",
+  "last_daf": 64,
+  "last_amud": "a"
+}</code></pre>
+        </div>
+
+        <div class="example">
+            <h3>PDF Not Found</h3>
+            <p><strong>Status Code:</strong> 404 Not Found</p>
+            <pre><code>{
+  "error": "PDF not found",
+  "message": "PDF file for page 1234 does not exist",
+  "requested": {
+    "masechta": "Berachos",
+    "daf": 10,
+    "amud": "a",
+    "page_number": 1234
+  }
+}</code></pre>
+        </div>
+
+        <h2>Usage Tips</h2>
+        <ul>
+            <li><strong>Masechta names:</strong> Use lowercase and hyphens for multi-word names (e.g.,
+                <code>bava-kamma</code>, <code>rosh-hashanah</code>)
+            </li>
+            <li><strong>Daf numbering:</strong> Starts from 2 (Talmudic convention)</li>
+            <li><strong>Ending amudim:</strong> Some masechtot end on amud aleph (17 total). The API will return an
+                error if you request amud bet for these last dapim</li>
+            <li><strong>Amud options:</strong> You can use <code>a</code>, <code>aleph</code>, or <code>1</code> for
+                amud aleph; <code>b</code>, <code>bet</code>, or <code>2</code> for amud bet</li>
+            <li><strong>Meilah aliases:</strong> Use <code>kinim</code>, <code>tamid</code>, or <code>middos</code> to
+                access specific sections within the Meilah volume (see masechta list above for daf ranges)</li>
+            <li><strong>Direct PDF access:</strong> By default, the API serves the PDF file directly for easy embedding
+                in web pages</li>
+            <li><strong>JSON metadata:</strong> Add <code>&format=json</code> to get file information without
+                downloading the PDF</li>
+        </ul>
+
+        <h2>Integration Example (JavaScript)</h2>
+        <pre><code>// Fetch and display a PDF
+function loadDaf(masechta, daf, amud = 'a') {
+    const url = `https://www.shas.org/daf-pdf/api/?masechta=${masechta}&daf=${daf}&amud=${amud}`;
+
+    // Display PDF in iframe
+    document.getElementById('pdf-viewer').src = url;
+
+    // Or get metadata
+    fetch(`${url}&format=json`)
+        .then(response => response.json())
+        .then(data => {
+            console.log('Loaded:', data.masechta, data.daf, data.amud);
+        });
+}
+
+// Example usage
+loadDaf('berachos', 2, 'a');</code></pre>
+
+        <footer
+            style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #ecf0f1; color: #7f8c8d; text-align: center;">
+            <p>Daf PDF Viewer API Documentation | Last updated: January 2026</p>
+        </footer>
+    </div>
+</body>
+
+</html>
