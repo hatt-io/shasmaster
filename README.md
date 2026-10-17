@@ -9,14 +9,14 @@
 <br>
 
 <p align="center">
-  <a href="https://github.com/hatt-io/shasmaster/releases/download/v0.1.0/Shas-Master-Native-macOS-arm64.dmg"><img src="docs/assets/download-mac.svg" width="30%" alt="Download macOS — Apple Silicon, 287 MB"></a>
-  <a href="https://github.com/hatt-io/shasmaster/releases/download/v0.1.0/Shas-Master-Native-Windows-x64-unsigned.exe"><img src="docs/assets/download-windows.svg" width="30%" alt="Download Windows — Intel/AMD x64, 264 MB"></a>
+  <a href="https://github.com/hatt-io/shasmaster/releases/download/v0.1.1/Shas-Master-Native-macOS-arm64.dmg"><img src="docs/assets/download-mac.svg" width="30%" alt="Download macOS — Apple Silicon, 287 MB"></a>
+  <a href="https://github.com/hatt-io/shasmaster/releases/download/v0.1.1/Shas-Master-Native-Windows-x64-unsigned.exe"><img src="docs/assets/download-windows.svg" width="30%" alt="Download Windows — Intel/AMD x64, 264 MB"></a>
   <a href="docs/BUILD-LINUX.md"><img src="docs/assets/download-linux.svg" width="30%" alt="Linux — build from source"></a>
 </p>
 
 <p align="center">
   <a href="docs/INSTALL.md">How to install</a> &nbsp; · &nbsp;
-  <a href="https://github.com/hatt-io/shasmaster/releases/tag/v0.1.0">Release details &amp; checksums</a> &nbsp; · &nbsp;
+  <a href="https://github.com/hatt-io/shasmaster/releases/tag/v0.1.1">Release details &amp; checksums</a> &nbsp; · &nbsp;
   <a href="https://github.com/hatt-io/shasmaster/issues">Report a problem</a>
 </p>
 
