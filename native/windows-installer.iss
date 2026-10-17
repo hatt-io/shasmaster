@@ -4,7 +4,7 @@
 [Setup]
 AppId=ShasMaster.Reader
 AppName=Shas Master
-AppVersion=0.1.0
+AppVersion=0.1.1
 DefaultDirName={localappdata}\Programs\Shas Master
 DefaultGroupName=Shas Master
 PrivilegesRequired=lowest
