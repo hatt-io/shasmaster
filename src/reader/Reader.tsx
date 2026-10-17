@@ -18,11 +18,28 @@ export function Reader({data,zoom,initialWord,destination,onPosition,onHistory,o
  const [preview,setPreview]=useState<{word:string;range:[number,number]|null}|null>(null);
  const [deleting,setDeleting]=useState<string|null>(null),[deleteError,setDeleteError]=useState('');
  const focusEditor=useRef(false);
+ const pan=useRef<{id:number;x:number;y:number;left:number;top:number;alt:boolean}|null>(null);
+ const suppressPanClick=useRef(false);
  const visibleComponents=useMemo(()=>{if(!selected||components[selected]?.length)return components;return {...components,[selected]:[emptyBase()]}},[components,selected]);
  const values=useMemo(()=>Object.fromEntries(Object.entries(components).map(([id,parts])=>[id,componentText(parts)])),[components]);
  const directions=useMemo(()=>Object.fromEntries(Object.entries(components).map(([id,parts])=>[id,parts.find(p=>p.role==='base')?.direction||'auto'])),[components]);
  const [width,setWidth]=useState(Math.min(window.innerWidth-32,1100));
  const host=useRef<HTMLDivElement>(null),scroller=useRef<HTMLDivElement>(null),inputs=useRef(new Map<string,HTMLTextAreaElement>()),groups=useRef(new Map<string,HTMLDivElement>()),buttons=useRef(new Map<string,HTMLElement>());
+ function stopPan(){
+  const viewport=scroller.current,start=pan.current;pan.current=null;
+  viewport?.classList.remove('panning');
+  if(start&&viewport?.hasPointerCapture(start.id))viewport.releasePointerCapture(start.id);
+ }
+ useEffect(()=>{
+  const down=(event:KeyboardEvent)=>{
+   if(event.key!=='Alt'||(event.target as HTMLElement)?.closest('input,textarea,select,[contenteditable=true],[role=dialog]'))return;
+   event.preventDefault();scroller.current?.classList.add('pan-ready');
+  };
+  const up=(event:KeyboardEvent)=>{if(event.key==='Alt'){scroller.current?.classList.remove('pan-ready');if(pan.current?.alt)stopPan()}};
+  const blur=()=>{scroller.current?.classList.remove('pan-ready');stopPan()};
+  window.addEventListener('keydown',down);window.addEventListener('keyup',up);window.addEventListener('blur',blur);
+  return()=>{window.removeEventListener('keydown',down);window.removeEventListener('keyup',up);window.removeEventListener('blur',blur);blur()};
+ },[]);
  const scale=width*zoom/geometry.width;
  const layout=useMemo(()=>layoutPage(geometry,values,selected,scale,directions,visibleComponents),[geometry,values,selected,scale,directions,visibleComponents]);
  const wordMap=useMemo(()=>new Map(geometry.words.map(w=>[w.id,w])),[geometry]);
@@ -143,7 +160,24 @@ export function Reader({data,zoom,initialWord,destination,onPosition,onHistory,o
  const highlight=sourceRange&&characterBounds&&sourceRange[1]<=characterBounds.length?characterBounds.slice(sourceRange[0],sourceRange[1]):null;
  const highlightLeft=highlight?.length?Math.min(...highlight.map(b=>b[0])):null;
  const highlightRight=highlight?.length?Math.max(...highlight.map(b=>b[1])):null;
- return <div ref={scroller} className="reader-scroll" onPointerDown={e=>{if(e.target===e.currentTarget||e.target===host.current)dismiss()}}><div ref={host} className="daf" style={{width:(layout.width||geometry.width)*scale,height:layout.height*scale}}>
+ return <div ref={scroller} className="reader-scroll" tabIndex={0} aria-label="Reading page"
+  onPointerDownCapture={e=>{
+   suppressPanClick.current=false;
+   if(e.pointerType==='touch'||!(e.button===0&&e.altKey||e.button===1))return;
+   e.preventDefault();e.stopPropagation();dismiss();
+   suppressPanClick.current=true;
+   pan.current={id:e.pointerId,x:e.clientX,y:e.clientY,left:e.currentTarget.scrollLeft,top:e.currentTarget.scrollTop,alt:e.button===0};
+   e.currentTarget.setPointerCapture(e.pointerId);e.currentTarget.classList.add('panning');
+  }}
+  onPointerMove={e=>{const start=pan.current;if(!start||start.id!==e.pointerId)return;e.preventDefault();e.currentTarget.scrollLeft=start.left+start.x-e.clientX;e.currentTarget.scrollTop=start.top+start.y-e.clientY}}
+  onPointerUp={e=>{if(pan.current?.id===e.pointerId)stopPan()}}
+  onPointerCancel={()=>stopPan()}
+  onLostPointerCapture={e=>{pan.current=null;e.currentTarget.classList.remove('panning')}}
+  onClickCapture={e=>{if(suppressPanClick.current){suppressPanClick.current=false;e.preventDefault();e.stopPropagation()}}}
+  onAuxClick={e=>{if(e.button===1)e.preventDefault()}}
+  onKeyDown={e=>{if(e.key==='Escape')stopPan()}}
+  onPointerDown={e=>{if(e.target===e.currentTarget||e.target===host.current)dismiss()}}>
+  <div ref={host} className="daf" style={{width:(layout.width||geometry.width)*scale,height:layout.height*scale}}>
   <SourceText data={data} layout={layout} scale={scale} selected={selected} targets={buttons} onActivate={id=>select(id)} onSelecting={()=>{focusEditor.current=false;finish(selected);setMenuOpen(false)}} onKeyDown={key}/>
   {selectedWord&&highlightLeft!==null&&highlightRight!==null&&<div className="component-source-range" aria-hidden="true" style={{left:highlightLeft*scale,top:(selectedWord.top+(layout.offsets[selectedWord.line]||0))*scale,width:(highlightRight-highlightLeft)*scale,height:(selectedWord.bottom-selectedWord.top)*scale}}/>}
   {Object.entries(layout.annotations).map(([id,p])=><div key={id} id={'translation-'+id} ref={el=>{if(el)groups.current.set(id,el);else groups.current.delete(id)}} className={'word-annotation'+(selected===id?' selected':'')} role="group" aria-label={'Translation: '+wordMap.get(id)?.text} style={{left:p.x*scale,top:p.y*scale,width:p.width*scale,height:p.height*scale}}>

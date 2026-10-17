@@ -152,3 +152,9 @@
 .reader-toolbar :is(button,input,select):focus-visible,.modal :is(button,input,select,textarea,summary,a):focus-visible,.suggestions :is(button,textarea):focus-visible{outline:2px solid var(--control-focus);outline-offset:2px}
 .new-meaning{padding:8px;font-size:14px}
 .suggestion-accept,.suggestion-delete{min-height:var(--control-height)}
+.reader-shell{height:100vh;height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+.reader-toolbar{flex:none}
+.reader-shell>.reader-scroll{flex:1;min-height:0;min-width:0;overscroll-behavior:contain}
+.pan-ready,.pan-ready .source-word{cursor:grab}
+.panning,.panning .source-word{cursor:grabbing}
+.pan-ready .source-text-layer,.pan-ready .source-word,.pan-ready .source-word-text,.panning .source-text-layer,.panning .source-word,.panning .source-word-text{user-select:none;-webkit-user-select:none}

@@ -173,7 +173,7 @@ export function App(){
    <button dir="ltr" aria-label="Next amud" onClick={()=>adjacent(1)} disabled={!page||page.sequence===catalogue.pages.length-1}><span aria-hidden="true">‹</span> Next</button>
   </nav>
   <div className="actions">
-   <div className="zoom-controls" role="group" aria-label="Zoom">
+   <div className="zoom-controls" role="group" aria-label="Zoom" title="Hold Option (Alt) and drag to move around the page">
     <button onClick={()=>changeZoom(zoom-.1)} disabled={zoom<=.5}>− Zoom out</button>
     <button className="zoom" onClick={()=>changeZoom(1)} aria-label={'Zoom '+Math.round(zoom*100)+' percent; reset to 100 percent'}>{Math.round(zoom*100)}% · Reset</button>
     <button onClick={()=>changeZoom(zoom+.1)} disabled={zoom>=3}>+ Zoom in</button>

@@ -29,6 +29,8 @@ Linux users [build from source](https://github.com/hatt-io/shasmaster/blob/main/
 
 ## Meanings, backups and updates
 
+To move around a zoomed page, scroll with your trackpad or swipe on a touch screen. With a mouse, hold **Option (Alt)** and drag, or drag with the middle mouse button. Release the key or button to return to normal text selection.
+
 Click a Hebrew word and type your meaning. Saved meanings are offered again for exactly the same Hebrew spelling. Use the reader's backup and restore controls to keep an extra copy of your work.
 
 Close Shas Master before installing an update. Install the new version over the existing application. Your meanings and other saved work are stored separately from the application:

@@ -252,10 +252,13 @@ def evaluate_reader_editing():
     """Exercise real Reader event handlers and render transitions, without UI control."""
     subprocess.run(['node','--input-type=commonjs'],input=r'''
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict'),ts=require('typescript');
-const slots=[];let cursor=0,saves=[],effects=[],focused=null,focusCalls=0;
+const slots=[];let cursor=0,saves=[],effects=[],passiveEffects=[],focused=null,focusCalls=0;
+const events=new Map();
+const window={innerWidth:1000,addEventListener(name,fn){if(!events.has(name))events.set(name,new Set());events.get(name).add(fn)},removeEventListener(name,fn){events.get(name)?.delete(fn)}};
+const dispatch=(name,event)=>{for(const fn of events.get(name)||[])fn(event)};
 class TextArea {constructor(){this.dataset={piece:'base'}} focus(){focused=this;focusCalls++}}
 const editors=new Map();
-const react={useState(initial){const i=cursor++;if(!(i in slots))slots[i]=typeof initial==='function'?initial():initial;return [slots[i],value=>slots[i]=typeof value==='function'?value(slots[i]):value]},useRef(value){const i=cursor++;return slots[i]??(slots[i]={current:value})},useMemo:fn=>fn(),useEffect(){},useLayoutEffect(fn,deps){const i=cursor++,previous=slots[i];if(!previous||deps.some((v,n)=>v!==previous[n]))effects.push(fn);slots[i]=deps}};
+const react={useState(initial){const i=cursor++;if(!(i in slots))slots[i]=typeof initial==='function'?initial():initial;return [slots[i],value=>slots[i]=typeof value==='function'?value(slots[i]):value]},useRef(value){const i=cursor++;return slots[i]??(slots[i]={current:value})},useMemo:fn=>fn(),useEffect(fn){passiveEffects.push(fn)},useLayoutEffect(fn,deps){const i=cursor++,previous=slots[i];if(!previous||deps.some((v,n)=>v!==previous[n]))effects.push(fn);slots[i]=deps}};
 const jsx=(type,props,key)=>({type,props:props||{},key});
 function load(path){const exports={};vm.runInNewContext(ts.transpileModule(fs.readFileSync(path,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}}).outputText,{exports,require:name=>{
  if(name==='react')return react;if(name==='react/jsx-runtime')return {jsx,jsxs:jsx};
@@ -268,14 +271,14 @@ function load(path){const exports={};vm.runInNewContext(ts.transpileModule(fs.re
  if(name==='./sourceOrder')return {orderedWords:d=>d.geometry.words};
  if(name==='./SourceText')return {SourceText:()=>null};
  if(name==='../api')return {};throw Error(name);
-},window:{innerWidth:1000},document:{body:{}},HTMLTextAreaElement:TextArea,requestAnimationFrame:()=>0});return exports;}
+},window,document:{body:{}},HTMLTextAreaElement:TextArea,requestAnimationFrame:()=>0});return exports;}
 const {Reader}=load('src/reader/Reader.tsx');
 const props={data:{geometry:{width:200,height:100,words:[{id:'synthetic',line:'line',text:'אא',normalized:'אא',x:0,r:20,top:0,bottom:20}],lines:[],regions:[]},annotations:[]},zoom:1,initialWord:'synthetic',destination:{serial:1},onPosition(){},onHistory(){},onCorrect(){},onSelected(){}};
 function fields(node,path='root',found=[]){if(Array.isArray(node)){node.forEach((n,i)=>fields(n,path+'/'+i,found));return found}if(!node||typeof node!=='object')return found;if(node.type==='textarea')found.push({node,path});fields(node.props?.children,path+'/'+String(node.type),found);return found}
 props.data.geometry.words.push({...props.data.geometry.words[0],id:'synthetic-next',x:30,r:50});
 let tree;
 function nodes(node,predicate,result=[]){if(Array.isArray(node)){node.forEach(n=>nodes(n,predicate,result));return result}if(!node||typeof node!=='object')return result;if(predicate(node))result.push(node);nodes(node.props?.children,predicate,result);return result}
-function render(open=true){cursor=0;effects=[];tree=Reader(props);const found=fields(tree);assert.equal(found.length,open?1:0,'one editor only while open');for(const {node} of found){if(!editors.has(node.key))editors.set(node.key,new TextArea());node.props.ref(editors.get(node.key))}for(const effect of effects)effect();return found[0]}
+function render(open=true){cursor=0;effects=[];passiveEffects=[];tree=Reader(props);const found=fields(tree);assert.equal(found.length,open?1:0,'one editor only while open');for(const {node} of found){if(!editors.has(node.key))editors.set(node.key,new TextArea());node.props.ref(editors.get(node.key))}for(const effect of effects)effect();return found[0]}
 function press(key,options={}){const event={key,nativeEvent:{isComposing:false},currentTarget:new TextArea(),preventDefault(){this.defaultPrevented=true},...options};field.node.props.onKeyDown(event);return event}
 let field=render();const path=field.path,key=field.node.key;
 for(const value of ['a','ab','abc','','ש','של','שלום','svenska åäö','mixed שלום text']){
@@ -307,7 +310,31 @@ nodes(tree,n=>n.props.onActivate)[0].props.onActivate('synthetic');field=render(
 field.node.props.onChange({target:{value:'retained on Enter'}});field=render();press('Enter');render(false);assert.ok(saves.at(-1)[5]);
 nodes(tree,n=>n.props.onActivate)[0].props.onActivate('synthetic');field=render();assert.equal(field.node.props.value,'retained on Enter');
 field.node.props.onChange({target:{value:'retained on Escape'}});field=render();press('Escape');render(false);assert.ok(saves.at(-1)[5]);
-console.log('Reader editing: stable field; Swedish/Hebrew/mixed text; direction; multiline; IME Enter/Escape guards; Tab/back; full removal/reopening; Enter/Escape completion passed. Native caret/IME behavior was not automated.');
+const classes=new Set();
+const viewport={scrollLeft:200,scrollTop:300,classList:{add:name=>classes.add(name),remove:name=>classes.delete(name)},setPointerCapture(id){this.captured=id},hasPointerCapture(id){return this.captured===id},releasePointerCapture(){this.captured=null}};
+tree.props.ref.current=viewport;
+const cleanup=passiveEffects.map(effect=>effect()).filter(Boolean);
+const pointer={button:0,altKey:true,pointerType:'mouse',pointerId:1,clientX:100,clientY:100,target:{closest:()=>null},currentTarget:viewport,preventDefault(){},stopPropagation(){}};
+dispatch('keydown',{key:'Alt',target:{closest:()=>null},preventDefault(){}});assert.ok(classes.has('pan-ready'));
+tree.props.onPointerDownCapture(pointer);assert.equal(viewport.captured,1);
+tree.props.onPointerMove({...pointer,clientX:70,clientY:50});assert.equal(viewport.scrollLeft,230);assert.equal(viewport.scrollTop,350);
+let suppressed=false;tree.props.onClickCapture({...pointer,preventDefault(){suppressed=true}});assert.ok(suppressed,'moving cannot open a word editor');
+tree.props.onPointerUp(pointer);assert.equal(viewport.captured,null);
+tree.props.onPointerMove({...pointer,clientX:0,clientY:0});assert.equal(viewport.scrollTop,350,'release stops movement');
+tree.props.onPointerDownCapture(pointer);tree.props.onPointerCancel(pointer);viewport.captured=null;
+tree.props.onPointerMove({...pointer,clientY:0});assert.equal(viewport.scrollTop,350,'cancel stops movement');
+tree.props.onPointerDownCapture(pointer);dispatch('keyup',{key:'Alt'});assert.equal(viewport.captured,null);assert.ok(!classes.has('pan-ready'),'releasing Alt immediately returns to normal selection');
+tree.props.onPointerMove({...pointer,clientY:0});assert.equal(viewport.scrollTop,350);
+tree.props.onPointerDownCapture({...pointer,altKey:false});assert.equal(viewport.captured,null,'ordinary dragging remains text selection');
+tree.props.onPointerDownCapture({...pointer,pointerType:'touch'});assert.equal(viewport.captured,null,'touch movement uses native scrolling');
+tree.props.onPointerDownCapture({...pointer,altKey:false,button:1});assert.equal(viewport.captured,1,'middle button can pan without a key');
+dispatch('blur',{});assert.equal(viewport.captured,null,'losing window focus cancels panning');
+dispatch('keydown',{key:'Alt',target:{closest:()=>({})},preventDefault(){throw Error('Typing must retain Option/Alt combinations')}});assert.ok(!classes.has('pan-ready'));
+dispatch('keydown',{key:' ',target:{closest:()=>null},preventDefault(){throw Error('Space must not be intercepted')}});
+for(const dispose of cleanup)dispose();
+render(false);
+nodes(tree,n=>n.props.onActivate)[0].props.onActivate('synthetic');field=render();assert.equal(field.node.props.value,'retained on Escape');
+console.log('Reader editing: typing, saved edits, Alt/middle-button dragging, key release, cancellation, blur, native touch scrolling and preserved typing/Space behavior passed. Native graphical interaction was not automated.');
 ''',text=True,check=True,cwd=Path(__file__).resolve().parent)
 
 
@@ -663,6 +690,9 @@ def evaluate_frozen_backend(web=False,native=False,browser=False):
                     client.get('/icon.svg').raise_for_status()
                 catalogue=client.get('/api/catalogue');catalogue.raise_for_status()
                 pages=catalogue.json()['pages'];selected=pages[::450]
+                # Exercise runtime cmap construction for duplicate-Unicode
+                # source outlines, not only fonts already stored in the package.
+                selected.extend(page for page in pages if page['id'] in ('bechoros-8b','arachin-5b','yoma-24b') and page not in selected)
                 first=None;fonts=0
                 for page in selected:
                     response=client.get('/api/pages/'+page['id']);response.raise_for_status();data=response.json()

@@ -10,8 +10,16 @@ export function useReaderPosition(props:Props){
  const pendingSelection=useRef<string|null|undefined>(undefined);
  function point(word:Word){const p=current.current;return {x:(word.x+word.r)/2+(p.layout.xOffsets?.[word.id]||0),y:word.top+(p.layout.offsets[word.line]||0)}}
  function rememberFocus(){
-  const p=current.current,word=p.geometry.words.find(w=>w.id===p.selected),rect=p.host.current?.getBoundingClientRect();
-  if(!word||!rect){focus.current=null;return}
+  const p=current.current,rect=p.host.current?.getBoundingClientRect();
+  if(!rect){focus.current=null;return}
+  let word=p.geometry.words.find(w=>w.id===p.selected);
+  if(!word){
+   const viewport=p.scroller.current?.getBoundingClientRect();
+   const cx=(viewport?.left||0)+(viewport?.width||innerWidth)/2,cy=(viewport?.top||0)+(viewport?.height||innerHeight)/2;
+   let best=Infinity;
+   for(const candidate of p.geometry.words){const source=point(candidate),distance=Math.hypot(rect.left+source.x*p.scale-cx,rect.top+source.y*p.scale-cy);if(distance<best){best=distance;word=candidate}}
+  }
+  if(!word){focus.current=null;return}
   const source=point(word),x=rect.left+source.x*p.scale,y=rect.top+source.y*p.scale;
   const viewport=window.visualViewport,left=viewport?.offsetLeft||0,top=viewport?.offsetTop||0;
   focus.current={id:word.id,x,y,sourceY:source.y,scale:p.scale,visible:y>=top&&y<top+(viewport?.height||innerHeight)&&x>=left&&x<left+(viewport?.width||innerWidth)};
@@ -26,7 +34,7 @@ export function useReaderPosition(props:Props){
   const edge=annotation?annotation.y+Math.min(annotation.height,annotation.fontSize*1.25):word.bottom+(p.layout.offsets[word.line]||0);
   const height=(edge-source.y)*p.scale;
   const shift=y<top?y-top:y+height>bottom?y-Math.max(top,bottom-height):0;
-  if(shift)window.scrollBy({top:shift,behavior:'instant'});
+  if(shift)p.scroller.current?.scrollBy({top:shift,behavior:'instant'});
  }
  function capture(){
   const p=current.current,rect=p.host.current?.getBoundingClientRect();if(!p.ready||restored.current!==p.destination.serial||!rect)return;
@@ -53,15 +61,15 @@ export function useReaderPosition(props:Props){
   restored.current=p.destination.serial;focus.current=null;
   const selection=saved?.selected_word||requested||null;
   pendingSelection.current=p.geometry.words.some(word=>word.id===selection)?selection:null;
-  if(hasTarget){const rect=p.host.current.getBoundingClientRect();p.scroller.current.scrollLeft+=rect.left+x*p.scale-innerWidth*viewportX;window.scrollBy({top:rect.top+y*p.scale-innerHeight*viewportY,behavior:'instant'})}
-  else if(!saved&&!requested){p.scroller.current.scrollLeft=0;window.scrollTo({top:0,behavior:'instant'})}
+  if(hasTarget){const rect=p.host.current.getBoundingClientRect();p.scroller.current.scrollLeft+=rect.left+x*p.scale-innerWidth*viewportX;p.scroller.current.scrollTop+=rect.top+y*p.scale-innerHeight*viewportY}
+  else if(!saved&&!requested){p.scroller.current.scrollLeft=0;p.scroller.current.scrollTop=0}
   rememberFocus();capture();
  },[props.ready,props.destination.serial,props.layout,props.scale]);
  useLayoutEffect(()=>{
-  const p=current.current,previous=focus.current,word=p.geometry.words.find(w=>w.id===p.selected),rect=p.host.current?.getBoundingClientRect();
+  const p=current.current,previous=focus.current,word=p.geometry.words.find(w=>w.id===(p.selected||previous?.id)),rect=p.host.current?.getBoundingClientRect();
   if(previous&&word&&rect&&p.scroller.current&&previous.id===word.id&&previous.visible){
    const source=point(word);
-   if(previous.scale!==p.scale||previous.sourceY!==source.y){p.scroller.current.scrollLeft+=rect.left+source.x*p.scale-previous.x;window.scrollBy({top:rect.top+source.y*p.scale-previous.y,behavior:'instant'})}
+   if(previous.scale!==p.scale||previous.sourceY!==source.y){p.scroller.current.scrollLeft+=rect.left+source.x*p.scale-previous.x;p.scroller.current.scrollTop+=rect.top+source.y*p.scale-previous.y}
   }
   rememberFocus();capture();
  },[props.layout,props.scale,props.selected,props.ready]);
